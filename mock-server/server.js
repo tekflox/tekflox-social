@@ -556,10 +556,17 @@ app.patch('/api/settings', (req, res) => {
 });
 
 // =====================================================
-// START SERVER
+// START SERVER (Development only)
 // =====================================================
 
-app.listen(PORT, () => {
-  console.log(`🚀 Mock Server running on http://localhost:${PORT}`);
-  console.log(`📊 API Documentation available at /api/health`);
-});
+// For Vercel: export the app directly
+// For local development: start the server
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Mock Server running on http://localhost:${PORT}`);
+    console.log(`📊 API Documentation available at /api/health`);
+  });
+}
+
+// Export for Vercel
+module.exports = app;

@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:3001/api';
+// Use API route in production (Vercel), localhost in development
+const BASE_URL = import.meta.env.PROD 
+  ? '/api'  // Production: same domain (Vercel routing)
+  : 'http://localhost:3001/api';  // Development: local mock server
 
 const api = axios.create({
   baseURL: BASE_URL,
