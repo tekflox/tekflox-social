@@ -9,9 +9,12 @@
 [![Tailwind](https://img.shields.io/badge/Tailwind-3.3.6-38B2AC.svg)](https://tailwindcss.com/)
 [![Express](https://img.shields.io/badge/Express-4.18.2-000000.svg)](https://expressjs.com/)
 
-[Início Rápido](#-início-rápido) • [API Docs](./docs/API.md) • [Telas](#-telas-da-aplicação) • [Roadmap](#-roadmap-de-desenvolvimento) • [📚 Docs](./docs/)
+[Início Rápido](#-início-rápido) • [API Docs](./docs/API.md) • [Deploy](./DEPLOY.md) • [Telas](#-telas-da-aplicação) • [📚 Docs](./docs/)
 
-**🌐 Aplicação Online:** [https://tekflox-social.vercel.app](https://tekflox-social.vercel.app)
+**🌐 Aplicações Online:**
+- **Frontend + Backend:** [https://tekflox-social.vercel.app](https://tekflox-social.vercel.app)
+- **Frontend (GitHub Pages):** [https://tekflox.github.io/tekflox-social](https://tekflox.github.io/tekflox-social)
+- **Backend API:** [https://tekflox-social.vercel.app/api](https://tekflox-social.vercel.app/api)
 
 </div>
 
@@ -24,7 +27,9 @@ Este README fornece uma visão geral do projeto. Para documentação técnica co
 - **📘 [docs/](./docs/)** - Central de documentação
 - **🔌 [docs/API.md](./docs/API.md)** - Referência completa da API (20+ endpoints)
 - **🗂️ [docs/DOCUMENTATION_INDEX.md](./docs/DOCUMENTATION_INDEX.md)** - Índice navegável
-- **🤖 [tekflox-social.instructions.md](./tekflox-social.instructions.md)** - Contexto para IA
+- **🚀 [DEPLOY.md](./DEPLOY.md)** - Guia de deploy Vercel (backend + frontend)
+- **📄 [GITHUB_PAGES.md](./GITHUB_PAGES.md)** - Deploy GitHub Pages (frontend)
+- **🤖 [instructions/tekflox-social.instructions.md](./instructions/tekflox-social.instructions.md)** - Contexto para IA
 
 ---
 
@@ -130,6 +135,52 @@ npm test
 - **Mock Server API**: http://localhost:3001
 - **Health Check**: http://localhost:3001/api/health
 
+## 🚀 Deploy e Produção
+
+O projeto está configurado para deploy em duas plataformas:
+
+### Vercel (Backend + Frontend)
+- **URL**: https://tekflox-social.vercel.app
+- **Backend API**: https://tekflox-social.vercel.app/api
+- **Configuração**: Express.js como serverless functions
+- **Documentação**: [DEPLOY.md](./DEPLOY.md)
+
+### GitHub Pages (Frontend estático)
+- **URL**: https://tekflox.github.io/tekflox-social
+- **Backend**: Usa API do Vercel
+- **Uso**: Iframe-embeddable para outros sites
+- **Documentação**: [GITHUB_PAGES.md](./GITHUB_PAGES.md)
+
+**Deploy rápido:**
+```bash
+# Vercel (ambos frontend e backend)
+npm run deploy:vercel
+
+# GitHub Pages (apenas frontend)
+npm run deploy
+```
+
+**Arquitetura de Produção:**
+```
+┌──────────────────────────────────────────┐
+│  GitHub Pages (Frontend estático)        │
+│  https://tekflox.github.io/tekflox-social│
+└────────────────┬─────────────────────────┘
+                 │ API Calls
+                 ▼
+┌──────────────────────────────────────────┐
+│  Vercel (Backend serverless)             │
+│  https://tekflox-social.vercel.app/api   │
+└──────────────────────────────────────────┘
+```
+
+**IMPORTANTE:** React Router no GitHub Pages requer `basename`:
+```jsx
+<BrowserRouter basename="/tekflox-social">
+  <App />
+</BrowserRouter>
+```
+
 ## 🏗️ Arquitetura
 
 ### Diagrama de Arquitetura
@@ -162,7 +213,8 @@ npm test
                              │
 ┌────────────────────────────▼────────────────────────────────────┐
 │                    MOCK SERVER (Express)                        │
-│                    http://localhost:3001                        │
+│    Dev: http://localhost:3001                                   │
+│    Prod: https://tekflox-social.vercel.app/api                  │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐  │

@@ -75,15 +75,22 @@ npm run mock-server
 npm run dev
 ```
 
-### Acessar
+### Acessar (Desenvolvimento)
 - **Frontend:** http://localhost:5173
 - **API Mock:** http://localhost:3001
 - **Health Check:** http://localhost:3001/api/health
 
-### Build
+### Produção (Deploy)
+- **Vercel (Backend + Frontend):** https://tekflox-social.vercel.app
+- **Vercel API:** https://tekflox-social.vercel.app/api
+- **GitHub Pages (Frontend):** https://tekflox.github.io/tekflox-social
+
+### Build e Deploy
 ```bash
-npm run build      # Build de produção
-npm run preview    # Preview do build
+npm run build          # Build de produção
+npm run preview        # Preview do build
+npm run deploy         # Deploy GitHub Pages (frontend)
+npm run deploy:vercel  # Deploy Vercel (backend + frontend)
 ```
 
 ### Testes
@@ -128,6 +135,41 @@ npm run test:coverage # Coverage report
 - Arrays e objetos JavaScript para simular banco de dados
 
 **Endpoints:** 20+ APIs RESTful documentadas em `docs/API.md`
+
+### Arquitetura de Deploy (Produção)
+
+O projeto usa uma arquitetura dual-deployment:
+
+**1. Vercel (Backend + Frontend)**
+- URL: `https://tekflox-social.vercel.app`
+- Backend API: `https://tekflox-social.vercel.app/api`
+- Express.js rodando como serverless functions
+- Configurado via `vercel.json`
+- Health check: `/api/health`
+
+**2. GitHub Pages (Frontend Only)**
+- URL: `https://tekflox.github.io/tekflox-social`
+- Frontend estático (React build)
+- API aponta para Vercel backend
+- Configurado via `gh-pages` package
+- Base path: `/tekflox-social/`
+- **IMPORTANTE:** React Router precisa de `basename`:
+  ```jsx
+  <BrowserRouter basename="/tekflox-social">
+  ```
+
+**Detecção de Ambiente (`src/services/api.js`):**
+```javascript
+const BASE_URL = import.meta.env.PROD 
+  ? 'https://tekflox-social.vercel.app/api'  // GitHub Pages → Vercel
+  : 'http://localhost:3001/api';  // Local dev
+```
+
+**Vantagens:**
+- GitHub Pages: Free static hosting, iframe-embeddable
+- Vercel: Serverless backend, 100GB bandwidth free tier
+- Separation of concerns: frontend e backend independentes
+- CORS configurado automaticamente
 
 ---
 
@@ -717,6 +759,51 @@ npm run lint            # (se configurado)
 - **Port in use:** `lsof -ti:5173` e `kill -9 <PID>`
 - **Mock server não atualiza:** Reinicie com nodemon
 - **CORS error:** Verifique CORS habilitado no server.js
+- **GitHub Pages página em branco:** Verifique se `basename` está configurado no BrowserRouter
+- **Assets 404 no GitHub Pages:** Certifique-se que `base: '/tekflox-social/'` está no vite.config.js
+
+---
+
+## 🚀 Deploy
+
+### Vercel (Backend + Frontend)
+```bash
+# Fazer deploy
+npm run deploy:vercel
+
+# Ou manualmente com Vercel CLI
+vercel --prod
+```
+
+**Arquivos importantes:**
+- `vercel.json` - Configuração de build e rotas
+- `mock-server/server.js` - Exporta `module.exports = app` para serverless
+
+### GitHub Pages (Frontend only)
+```bash
+# Deploy automático
+npm run deploy
+
+# Isso executa:
+# 1. npm run build (predeploy)
+# 2. gh-pages -d dist
+```
+
+**Arquivos importantes:**
+- `package.json` - homepage: `https://tekflox.github.io/tekflox-social`
+- `vite.config.js` - base: `/tekflox-social/`
+- `src/main.jsx` - BrowserRouter com basename
+- `public/.nojekyll` - Desabilita Jekyll do GitHub
+
+**CRÍTICO para GitHub Pages:**
+```jsx
+// src/main.jsx
+<BrowserRouter basename="/tekflox-social">
+  <App />
+</BrowserRouter>
+```
+
+Sem o `basename`, React Router não funciona em subdiretórios do GitHub Pages.
 
 ---
 
@@ -736,6 +823,18 @@ npm run lint            # (se configurado)
 
 ---
 
+## 📝 Changelog Recente
+
+**Outubro 2025:**
+- ✅ Configurado deploy dual: Vercel (backend + frontend) e GitHub Pages (frontend)
+- ✅ Fix crítico: Adicionado `basename="/tekflox-social"` ao BrowserRouter para GitHub Pages
+- ✅ Removido favicon vite.svg que causava 404
+- ✅ Documentação completa de deploy em DEPLOY.md e GITHUB_PAGES.md
+- ✅ API em produção: https://tekflox-social.vercel.app/api
+- ✅ Frontend embeddable: https://tekflox.github.io/tekflox-social
+
+---
+
 **Este arquivo deve ser lido por qualquer IA que trabalhe no projeto para entender o contexto completo.**
 
-Última atualização: Outubro 2025
+Última atualização: 6 de Outubro de 2025
