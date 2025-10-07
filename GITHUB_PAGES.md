@@ -183,6 +183,16 @@ npm run deploy
 - Teste API diretamente: `curl https://tekflox-social.vercel.app/api/health`
 - Verifique CORS no backend (Vercel)
 
+### React Router não funciona (página em branco)
+**Problema**: Quando deploy para `/tekflox-social/`, o React Router precisa saber o base path.
+
+**Solução**: Adicionar `basename` ao BrowserRouter em `src/main.jsx`:
+```jsx
+<BrowserRouter basename="/tekflox-social">
+  <App />
+</BrowserRouter>
+```
+
 ### Roteamento não funciona (404 em rotas)
 Adicione `.nojekyll` na raiz do projeto:
 ```bash
