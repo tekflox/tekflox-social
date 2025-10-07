@@ -53,3 +53,4 @@ out
 .tern-port
 .yarn/install-state.gz
 .pnp.*
+.vercel
