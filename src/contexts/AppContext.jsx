@@ -64,6 +64,16 @@ function appReducer(state, action) {
         conversationMessages: [...state.conversationMessages, action.payload],
       };
       
+    case 'UPDATE_MESSAGE_STATUS':
+      return {
+        ...state,
+        conversationMessages: state.conversationMessages.map(msg =>
+          msg.id === action.payload.messageId 
+            ? { ...msg, status: action.payload.status } 
+            : msg
+        ),
+      };
+      
     case 'UPDATE_CONVERSATION':
       return {
         ...state,
@@ -180,6 +190,18 @@ export function AppProvider({ children }) {
     }
   };
   
+  const updateMessageStatus = (messageId, status) => {
+    dispatch({ type: 'UPDATE_MESSAGE_STATUS', payload: { messageId, status } });
+  };
+  
+  const handleMessageUpdates = (messages) => {
+    messages.forEach(msg => {
+      if (msg.status) {
+        updateMessageStatus(msg.id, msg.status);
+      }
+    });
+  };
+  
   const linkConversationToEntity = async (conversationId, linkData) => {
     try {
       const updated = await api.linkConversation(conversationId, linkData);
@@ -248,6 +270,8 @@ export function AppProvider({ children }) {
     loadPendingConversations,
     selectConversation,
     sendMessage,
+    updateMessageStatus,
+    handleMessageUpdates,
     linkConversationToEntity,
     loadDashboardStats,
     loadActionChoicesStats,

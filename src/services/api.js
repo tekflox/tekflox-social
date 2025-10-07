@@ -62,6 +62,18 @@ export const sendMessage = async (conversationId, message) => {
   return data;
 };
 
+export const updateMessageStatus = async (messageId, status) => {
+  const { data } = await api.patch(`/messages/${messageId}/status`, { status });
+  return data;
+};
+
+export const getMessageUpdates = async (conversationId, since) => {
+  const { data } = await api.get(`/conversations/${conversationId}/messages/updates`, {
+    params: { since: since?.toISOString() }
+  });
+  return data;
+};
+
 // =====================================================
 // AI
 // =====================================================

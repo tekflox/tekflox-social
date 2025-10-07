@@ -110,15 +110,16 @@ let conversations = [
   },
 ];
 
+// Message status: sending → sent → delivered → read
 let messages = [
-  { id: 1, conversationId: 1, sender: 'customer', text: 'Oi! Gostaria de saber se vocês têm esse produto em estoque?', timestamp: new Date('2025-10-05T10:30:00'), type: 'text' },
-  { id: 2, conversationId: 2, sender: 'customer', text: 'Qual o prazo de entrega para São Paulo?', timestamp: new Date('2025-10-05T09:15:00'), type: 'text' },
-  { id: 3, conversationId: 3, sender: 'customer', text: 'Olá! Fiz um pedido ontem e gostaria de confirmar.', timestamp: new Date('2025-10-05T08:30:00'), type: 'text' },
-  { id: 4, conversationId: 3, sender: 'agent', text: 'Olá Ana! Sim, seu pedido #WC-1003 foi confirmado e está em processamento. 😊', timestamp: new Date('2025-10-05T08:35:00'), type: 'text', actionType: 'ai_edited' },
-  { id: 5, conversationId: 3, sender: 'customer', text: 'Obrigada pelo excelente atendimento!', timestamp: new Date('2025-10-05T08:45:00'), type: 'text' },
-  { id: 6, conversationId: 4, sender: 'customer', text: 'Esse produto é original?', timestamp: new Date('2025-10-04T16:20:00'), type: 'text' },
-  { id: 7, conversationId: 5, sender: 'customer', text: 'Vocês fazem entrega em Brasília?', timestamp: new Date('2025-10-04T14:10:00'), type: 'text' },
-  { id: 8, conversationId: 5, sender: 'agent', text: 'Sim! Fazemos entregas para todo o Brasil. 🚚', timestamp: new Date('2025-10-04T14:15:00'), type: 'text', actionType: 'ai_accepted' },
+  { id: 1, conversationId: 1, sender: 'customer', text: 'Oi! Gostaria de saber se vocês têm esse produto em estoque?', timestamp: new Date('2025-10-05T10:30:00'), type: 'text', status: 'read' },
+  { id: 2, conversationId: 2, sender: 'customer', text: 'Qual o prazo de entrega para São Paulo?', timestamp: new Date('2025-10-05T09:15:00'), type: 'text', status: 'read' },
+  { id: 3, conversationId: 3, sender: 'customer', text: 'Olá! Fiz um pedido ontem e gostaria de confirmar.', timestamp: new Date('2025-10-05T08:30:00'), type: 'text', status: 'read' },
+  { id: 4, conversationId: 3, sender: 'agent', text: 'Olá Ana! Sim, seu pedido #WC-1003 foi confirmado e está em processamento. 😊', timestamp: new Date('2025-10-05T08:35:00'), type: 'text', actionType: 'ai_edited', status: 'read' },
+  { id: 5, conversationId: 3, sender: 'customer', text: 'Obrigada pelo excelente atendimento!', timestamp: new Date('2025-10-05T08:45:00'), type: 'text', status: 'read' },
+  { id: 6, conversationId: 4, sender: 'customer', text: 'Esse produto é original?', timestamp: new Date('2025-10-04T16:20:00'), type: 'text', status: 'read' },
+  { id: 7, conversationId: 5, sender: 'customer', text: 'Vocês fazem entrega em Brasília?', timestamp: new Date('2025-10-04T14:10:00'), type: 'text', status: 'read' },
+  { id: 8, conversationId: 5, sender: 'agent', text: 'Sim! Fazemos entregas para todo o Brasil. 🚚', timestamp: new Date('2025-10-04T14:15:00'), type: 'text', actionType: 'ai_accepted', status: 'read' },
 ];
 
 const posts = [
@@ -381,9 +382,12 @@ app.post('/api/conversations/:id/messages', (req, res) => {
     text,
     timestamp: new Date(),
     type: 'text',
-    actionType: actionType || 'manual'
+    actionType: actionType || 'manual',
+    status: 'sending' // Initial status
   };
   messages.push(newMessage);
+  
+  // Update conversation in list
   const convIndex = conversations.findIndex(c => c.id === conversationId);
   if (convIndex !== -1) {
     conversations[convIndex].lastMessage = text;
@@ -391,13 +395,76 @@ app.post('/api/conversations/:id/messages', (req, res) => {
     conversations[convIndex].status = 'answered';
     conversations[convIndex].unread = false;
   }
+  
+  // Track user action
   userActionChoices.push({
     conversationId,
     messageId: newMessage.id,
     actionType,
     timestamp: new Date()
   });
+  
+  // Simulate message status progression
+  // sending → sent → delivered → read
+  setTimeout(() => {
+    const msg = messages.find(m => m.id === newMessage.id);
+    if (msg) msg.status = 'sent';
+  }, 500);
+  
+  setTimeout(() => {
+    const msg = messages.find(m => m.id === newMessage.id);
+    if (msg) msg.status = 'delivered';
+  }, 1500);
+  
+  // Customer reads message after 3-5 seconds (simulate)
+  setTimeout(() => {
+    const msg = messages.find(m => m.id === newMessage.id);
+    if (msg) msg.status = 'read';
+  }, Math.random() * 2000 + 3000); // 3-5 seconds
+  
   res.json(newMessage);
+});
+
+// ==================== MESSAGE STATUS ====================
+
+// Update message status (for real-time updates from WordPress)
+app.patch('/api/messages/:id/status', (req, res) => {
+  const messageId = parseInt(req.params.id);
+  const { status } = req.body;
+  
+  const message = messages.find(m => m.id === messageId);
+  if (!message) {
+    return res.status(404).json({ error: 'Message not found' });
+  }
+  
+  // Validate status
+  const validStatuses = ['sending', 'sent', 'delivered', 'read'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ error: 'Invalid status' });
+  }
+  
+  message.status = status;
+  message.statusUpdatedAt = new Date();
+  
+  res.json(message);
+});
+
+// Get message status updates (for polling)
+app.get('/api/conversations/:id/messages/updates', (req, res) => {
+  const conversationId = parseInt(req.params.id);
+  const { since } = req.query; // Timestamp to get updates since
+  
+  const convMessages = messages.filter(m => m.conversationId === conversationId);
+  
+  if (since) {
+    const sinceDate = new Date(since);
+    const updatedMessages = convMessages.filter(m => {
+      return m.statusUpdatedAt && m.statusUpdatedAt > sinceDate;
+    });
+    return res.json({ messages: updatedMessages, hasUpdates: updatedMessages.length > 0 });
+  }
+  
+  res.json({ messages: convMessages, hasUpdates: false });
 });
 
 // ==================== AI SUGGESTIONS ====================

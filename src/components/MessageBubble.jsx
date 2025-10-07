@@ -1,9 +1,42 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Check, CheckCheck } from 'lucide-react';
+import { Check, CheckCheck, Clock } from 'lucide-react';
 
 export default function MessageBubble({ message }) {
   const isCustomer = message.sender === 'customer';
+  
+  // Render status icon based on message status
+  const renderStatusIcon = () => {
+    if (isCustomer) return null; // Customer messages don't show status
+    
+    switch (message.status) {
+      case 'sending':
+        return <Clock className="w-4 h-4 text-gray-400 animate-pulse" />;
+      case 'sent':
+        return <Check className="w-4 h-4 text-gray-400" />;
+      case 'delivered':
+        return <CheckCheck className="w-4 h-4 text-gray-400" />;
+      case 'read':
+        return <CheckCheck className="w-4 h-4 text-blue-500" />;
+      default:
+        return <Clock className="w-4 h-4 text-gray-400" />;
+    }
+  };
+  
+  const getStatusLabel = () => {
+    switch (message.status) {
+      case 'sending':
+        return 'Enviando...';
+      case 'sent':
+        return 'Enviada';
+      case 'delivered':
+        return 'Entregue';
+      case 'read':
+        return 'Lida';
+      default:
+        return '';
+    }
+  };
   
   const getActionTypeLabel = (actionType) => {
     switch (actionType) {
@@ -67,7 +100,12 @@ export default function MessageBubble({ message }) {
           )}
           
           {!isCustomer && (
-            <CheckCheck className="w-4 h-4 text-green-500" />
+            <>
+              <span className="text-xs text-gray-400">•</span>
+              <div className="flex items-center space-x-1" title={getStatusLabel()}>
+                {renderStatusIcon()}
+              </div>
+            </>
           )}
         </div>
       </div>

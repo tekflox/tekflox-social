@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Filter, Phone, Video, MoreVertical, Send, Paperclip, Smile, Info, ShoppingBag, User, Package, CheckCheck, Clock, MessageSquare, LayoutDashboard, Settings, ChevronRight, ChevronLeft, Tag, StickyNote, Sparkles } from 'lucide-react';
+import { Search, Filter, Phone, Video, MoreVertical, Send, Paperclip, Smile, Info, ShoppingBag, User, Package, CheckCheck, Clock, MessageSquare, LayoutDashboard, Settings, ChevronRight, ChevronLeft, Tag, StickyNote, Sparkles, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
+import { useMessagePolling } from '../hooks/useMessagePolling';
 import * as api from '../services/api';
 import MessageBubble from '../components/MessageBubble';
 import LinkingModal from '../components/LinkingModal';
 
 export default function ConversationsNew() {
   const navigate = useNavigate();
-  const { state, selectConversation, sendMessage } = useApp();
+  const { state, selectConversation, sendMessage, handleMessageUpdates } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [messageText, setMessageText] = useState('');
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -18,6 +19,14 @@ export default function ConversationsNew() {
   const [editedText, setEditedText] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState(['whatsapp', 'instagram', 'facebook']); // Todas selecionadas por padrão
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  
+  // Message polling for real-time updates
+  useMessagePolling(
+    state.selectedConversation?.id,
+    handleMessageUpdates,
+    3000, // Poll every 3 seconds
+    !!state.selectedConversation // Only poll when conversation is selected
+  );
   
   // States for sidebar functionality
   const [aiInsights, setAiInsights] = useState([]); // Array of chat messages
