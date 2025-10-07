@@ -11,6 +11,8 @@
 
 [Início Rápido](#-início-rápido) • [API Docs](./docs/API.md) • [Telas](#-telas-da-aplicação) • [Roadmap](#-roadmap-de-desenvolvimento) • [📚 Docs](./docs/)
 
+**🌐 Aplicação Online:** [https://tekflox-social.vercel.app](https://tekflox-social.vercel.app)
+
 </div>
 
 ---
