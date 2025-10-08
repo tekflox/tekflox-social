@@ -100,7 +100,22 @@ npm install
 
 ### Executando a Aplicação
 
-#### Opção 1: Dois terminais separados (recomendado para desenvolvimento)
+#### Opção 1: Tudo de uma vez (recomendado) ⚡
+
+```bash
+# Inicia backend + frontend em um único terminal
+npm run dev:all
+# ou simplesmente
+npm start
+```
+
+Isso vai iniciar:
+- 🔵 **API** - Mock Server na porta 3002
+- 🔮 **WEB** - Frontend Vite na porta 5173
+
+Com logs coloridos e organizados em um único terminal!
+
+#### Opção 2: Terminais separados (para debug detalhado)
 
 ```bash
 # Terminal 1 - Mock Server (porta 3002)
@@ -110,13 +125,15 @@ npm run mock-server
 npm run dev
 ```
 
-#### Opção 2: Comandos individuais
+#### Opção 3: Comandos individuais
 
 ```bash
 # Apenas frontend
 npm run dev
 
-# Apenas mock server
+# Apenas backend
+npm run dev:backend
+# ou
 npm run mock-server
 
 # Build para produção

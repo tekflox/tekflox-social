@@ -66,7 +66,14 @@ tekflox-social/
 npm install
 ```
 
-### Desenvolvimento (2 terminais)
+### Desenvolvimento
+
+**Opção 1 - Tudo de uma vez (recomendado):**
+```bash
+npm run dev:all  # ou: npm start
+```
+
+**Opção 2 - Terminais separados:**
 ```bash
 # Terminal 1 - Mock Server (porta 3002)
 npm run mock-server
