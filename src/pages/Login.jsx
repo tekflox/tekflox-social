@@ -7,9 +7,14 @@ export default function Login() {
   const navigate = useNavigate();
   const { login, isAuthenticated, isLoading, error: authError } = useAuth();
 
+  // Default backend URL: Vercel in production, localhost in development
+  const defaultBackendURL = import.meta.env.PROD 
+    ? 'https://tekflox-social.vercel.app'
+    : 'http://localhost:3002';
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [backendURL, setBackendURL] = useState('http://localhost:3002');
+  const [backendURL, setBackendURL] = useState(defaultBackendURL);
   const [localError, setLocalError] = useState('');
 
   // Redirect if already authenticated
@@ -133,13 +138,15 @@ export default function Login() {
                   value={backendURL}
                   onChange={(e) => setBackendURL(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                  placeholder="http://localhost:3002"
+                  placeholder={defaultBackendURL}
                   disabled={isLoading}
                   autoComplete="url"
                 />
               </div>
               <p className="mt-2 text-xs text-gray-500">
-                Configure o endereço do servidor backend
+                {import.meta.env.PROD 
+                  ? 'URL padrão: Vercel (produção)'
+                  : 'URL padrão: localhost (desenvolvimento)'}
               </p>
             </div>
 
