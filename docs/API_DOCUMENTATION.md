@@ -2,7 +2,7 @@
 
 ## Base URL
 ```
-http://localhost:3001/api
+http://localhost:3002/api
 ```
 
 ## Overview
@@ -459,11 +459,11 @@ Update settings.
 
 ```javascript
 // Get pending conversations with AI suggestions
-const response = await fetch('http://localhost:3001/api/dashboard/pending');
+const response = await fetch('http://localhost:3002/api/dashboard/pending');
 const pending = await response.json();
 
 // Send a reply accepting AI suggestion
-await fetch('http://localhost:3001/api/conversations/1/messages', {
+await fetch('http://localhost:3002/api/conversations/1/messages', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -473,7 +473,7 @@ await fetch('http://localhost:3001/api/conversations/1/messages', {
 });
 
 // Link conversation to customer and order
-await fetch('http://localhost:3001/api/conversations/1/link', {
+await fetch('http://localhost:3002/api/conversations/1/link', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({

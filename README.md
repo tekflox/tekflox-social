@@ -103,7 +103,7 @@ npm install
 #### Opção 1: Dois terminais separados (recomendado para desenvolvimento)
 
 ```bash
-# Terminal 1 - Mock Server (porta 3001)
+# Terminal 1 - Mock Server (porta 3002)
 npm run mock-server
 
 # Terminal 2 - Frontend React (porta 5173)
@@ -132,8 +132,8 @@ npm test
 ### Acessando a Aplicação
 
 - **Frontend**: http://localhost:5173
-- **Mock Server API**: http://localhost:3001
-- **Health Check**: http://localhost:3001/api/health
+- **Mock Server API**: http://localhost:3002
+- **Health Check**: http://localhost:3002/api/health
 
 ## 🚀 Deploy e Produção
 
@@ -213,7 +213,7 @@ npm run deploy
                              │
 ┌────────────────────────────▼────────────────────────────────────┐
 │                    MOCK SERVER (Express)                        │
-│    Dev: http://localhost:3001                                   │
+│    Dev: http://localhost:3002                                   │
 │    Prod: https://tekflox-social.vercel.app/api                  │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
@@ -459,11 +459,11 @@ O arquivo API.md contém:
 npm run mock-server
 ```
 
-**Base URL:** `http://localhost:3001/api`
+**Base URL:** `http://localhost:3002/api`
 
 **Health Check:**
 ```bash
-curl http://localhost:3001/api/health
+curl http://localhost:3002/api/health
 # Response: {"status":"ok","message":"Mock server is running!"}
 ```
 
@@ -509,18 +509,18 @@ O mock server usa **Nodemon** para reiniciar automaticamente quando arquivos sã
 **JavaScript/Axios:**
 ```javascript
 // Listar conversas pendentes do Instagram
-const response = await axios.get('http://localhost:3001/api/conversations', {
+const response = await axios.get('http://localhost:3002/api/conversations', {
   params: { platform: 'instagram', status: 'pending' }
 });
 
 // Enviar mensagem manual
-await axios.post('http://localhost:3001/api/conversations/1/messages', {
+await axios.post('http://localhost:3002/api/conversations/1/messages', {
   text: 'Olá! Como posso ajudar?',
   actionType: 'manual'
 });
 
 // Atualizar metadata
-await axios.patch('http://localhost:3001/api/conversations/1/metadata', {
+await axios.patch('http://localhost:3002/api/conversations/1/metadata', {
   tags: ['vip', 'urgente'],
   manualNotes: 'Cliente importante'
 });
@@ -529,13 +529,13 @@ await axios.patch('http://localhost:3001/api/conversations/1/metadata', {
 **cURL:**
 ```bash
 # Listar conversas
-curl http://localhost:3001/api/conversations
+curl http://localhost:3002/api/conversations
 
 # Buscar conversa específica com dados enriquecidos
-curl http://localhost:3001/api/conversations/1
+curl http://localhost:3002/api/conversations/1
 
 # Obter sugestão IA
-curl http://localhost:3001/api/ai/suggestion/1
+curl http://localhost:3002/api/ai/suggestion/1
 ```
 
 ### 🔗 Mais Informações
@@ -748,7 +748,7 @@ Para documentação completa com todos os detalhes:
 ```bash
 # Desenvolvimento
 npm run dev              # Inicia Vite dev server (porta 5173)
-npm run mock-server      # Inicia mock server com nodemon (porta 3001)
+npm run mock-server      # Inicia mock server com nodemon (porta 3002)
 
 # Build e Preview
 npm run build            # Build de produção (pasta dist/)
@@ -766,7 +766,7 @@ Para configuração futura, crie `.env` na raiz:
 
 ```env
 # API
-VITE_API_URL=http://localhost:3001
+VITE_API_URL=http://localhost:3002
 VITE_WP_URL=https://seu-wordpress.com
 
 # IA
@@ -935,10 +935,10 @@ export default {
 }
 ```
 
-### Erro: "Port 3001 already in use"
+### Erro: "Port 3002 already in use"
 ```bash
 # Encontre e mate o processo
-lsof -ti:3001 | xargs kill -9
+lsof -ti:3002 | xargs kill -9
 
 # Ou mude a porta no mock-server/server.js
 const PORT = 3002;
@@ -1126,15 +1126,15 @@ Todos os direitos reservados. Este software é proprietário e confidencial.
 ```bash
 npm install              # Instalar dependências
 npm run dev             # Frontend (5173)
-npm run mock-server     # Backend (3001)
+npm run mock-server     # Backend (3002)
 npm test                # Rodar testes
 npm run build           # Build produção
 ```
 
 ### URLs Importantes
 - Frontend: http://localhost:5173
-- Mock API: http://localhost:3001
-- Health Check: http://localhost:3001/api/health
+- Mock API: http://localhost:3002
+- Health Check: http://localhost:3002/api/health
 - Conversations: http://localhost:5173/conversations
 
 ### Estrutura de Dados Principais

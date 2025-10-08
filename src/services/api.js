@@ -3,7 +3,7 @@ import axios from 'axios';
 // Determine API URL based on environment
 const BASE_URL = import.meta.env.PROD 
   ? 'https://tekflox-social.vercel.app/api'  // Production: Vercel backend
-  : 'http://localhost:3001/api';  // Development: local mock server
+  : 'http://localhost:3002/api';  // Development: local mock server (porta 3002)
 
 const api = axios.create({
   baseURL: BASE_URL,

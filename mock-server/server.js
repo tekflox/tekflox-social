@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 
 const app = express();
-const PORT = 3001;
+const PORT = 3002;
 
 app.use(cors());
 app.use(express.json());
@@ -632,6 +632,7 @@ if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`🚀 Mock Server running on http://localhost:${PORT}`);
     console.log(`📊 API Documentation available at /api/health`);
+    console.log(`🔧 Port 3002 configured (avoiding port conflicts)`);
   });
 }
 

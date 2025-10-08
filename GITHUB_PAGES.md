@@ -15,7 +15,7 @@ Configuração para deploy do frontend no GitHub Pages.
 
 3. **src/services/api.js**
    - API em produção aponta para: `https://tekflox-social.vercel.app/api`
-   - Mantém `localhost:3001` em desenvolvimento
+   - Mantém `localhost:3002` em desenvolvimento
 
 ## 🚀 Deploy
 

@@ -134,8 +134,8 @@ mock-server/
 ### Para Integradores de API
 
 1. **Leia primeiro:** [API.md](./API.md)
-2. **Base URL:** http://localhost:3001/api
-3. **Health Check:** http://localhost:3001/api/health
+2. **Base URL:** http://localhost:3002/api
+3. **Health Check:** http://localhost:3002/api/health
 4. **Teste:** Use exemplos cURL do API.md
 
 ### Para Designers/UX
@@ -310,7 +310,7 @@ mock-server/
 | Erro | Solução |
 |------|---------|
 | Port 5173 in use | [README - Troubleshooting](./README.md#-troubleshooting) |
-| Port 3001 in use | [README - Troubleshooting](./README.md#-troubleshooting) |
+| Port 3002 in use | [README - Troubleshooting](./README.md#-troubleshooting) |
 | CORS error | [README - Troubleshooting](./README.md#-troubleshooting) |
 | Tests failing | [README - Testing](./README.md#-testing) |
 | Mock server not reloading | Verifique nodemon em package.json |
@@ -336,7 +336,7 @@ mock-server/
 - [ ] Iniciar mock server (`npm run mock-server`)
 - [ ] Iniciar frontend (`npm run dev`)
 - [ ] Acessar http://localhost:5173
-- [ ] Testar health check: http://localhost:3001/api/health
+- [ ] Testar health check: http://localhost:3002/api/health
 - [ ] Explorar interface de conversas
 - [ ] Ler código-fonte de Conversations.jsx
 - [ ] Executar testes (`npm test`)

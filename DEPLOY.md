@@ -98,7 +98,7 @@ vercel
 
 **Desenvolvimento (local):**
 ```
-Frontend (5173) → http://localhost:3001/api → Mock Server
+Frontend (5173) → http://localhost:3002/api → Mock Server
 ```
 
 **Produção (Vercel):**

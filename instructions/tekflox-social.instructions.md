@@ -68,7 +68,7 @@ npm install
 
 ### Desenvolvimento (2 terminais)
 ```bash
-# Terminal 1 - Mock Server (porta 3001)
+# Terminal 1 - Mock Server (porta 3002)
 npm run mock-server
 
 # Terminal 2 - Frontend (porta 5173)
@@ -77,8 +77,8 @@ npm run dev
 
 ### Acessar (Desenvolvimento)
 - **Frontend:** http://localhost:5173
-- **API Mock:** http://localhost:3001
-- **Health Check:** http://localhost:3001/api/health
+- **API Mock:** http://localhost:3002
+- **Health Check:** http://localhost:3002/api/health
 
 ### Produção (Deploy)
 - **Vercel (Backend + Frontend):** https://tekflox-social.vercel.app
@@ -162,7 +162,7 @@ O projeto usa uma arquitetura dual-deployment:
 ```javascript
 const BASE_URL = import.meta.env.PROD 
   ? 'https://tekflox-social.vercel.app/api'  // GitHub Pages → Vercel
-  : 'http://localhost:3001/api';  // Local dev
+  : 'http://localhost:3002/api';  // Local dev
 ```
 
 **Vantagens:**
@@ -667,7 +667,7 @@ export default function ComponentName() {
 4. **Não faça chamadas API diretas:**
    ```jsx
    // ❌ ERRADO
-   const res = await axios.get('http://localhost:3001/api/conversations');
+   const res = await axios.get('http://localhost:3002/api/conversations');
    
    // ✅ CORRETO
    const conversations = await api.getConversations();
@@ -725,7 +725,7 @@ npm install
 
 # Desenvolvimento
 npm run dev              # Frontend (5173)
-npm run mock-server      # Backend (3001)
+npm run mock-server      # Backend (3002)
 
 # Build
 npm run build
@@ -753,7 +753,7 @@ npm run lint            # (se configurado)
 ### Backend
 1. Console do terminal mostra logs
 2. Adicione `console.log()` conforme necessário
-3. Health check: http://localhost:3001/api/health
+3. Health check: http://localhost:3002/api/health
 
 ### Problemas Comuns
 - **Port in use:** `lsof -ti:5173` e `kill -9 <PID>`

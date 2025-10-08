@@ -2,7 +2,7 @@
 
 **Mock Server Documentation**
 
-Base URL: `http://localhost:3001/api`
+Base URL: `http://localhost:3002/api`
 
 ---
 
@@ -1040,24 +1040,24 @@ Response:
 
 **List Conversations:**
 ```bash
-curl http://localhost:3001/api/conversations
+curl http://localhost:3002/api/conversations
 ```
 
 **Get Single Conversation:**
 ```bash
-curl http://localhost:3001/api/conversations/1
+curl http://localhost:3002/api/conversations/1
 ```
 
 **Send Message:**
 ```bash
-curl -X POST http://localhost:3001/api/conversations/1/messages \
+curl -X POST http://localhost:3002/api/conversations/1/messages \
   -H "Content-Type: application/json" \
   -d '{"text":"Teste de mensagem","actionType":"manual"}'
 ```
 
 **Update Metadata:**
 ```bash
-curl -X PATCH http://localhost:3001/api/conversations/1/metadata \
+curl -X PATCH http://localhost:3002/api/conversations/1/metadata \
   -H "Content-Type: application/json" \
   -d '{"tags":["vip","urgente"]}'
 ```
@@ -1066,7 +1066,7 @@ curl -X PATCH http://localhost:3001/api/conversations/1/metadata \
 
 **List Conversations:**
 ```javascript
-const response = await axios.get('http://localhost:3001/api/conversations', {
+const response = await axios.get('http://localhost:3002/api/conversations', {
   params: { platform: 'instagram', status: 'pending' }
 });
 ```
@@ -1074,7 +1074,7 @@ const response = await axios.get('http://localhost:3001/api/conversations', {
 **Send Message:**
 ```javascript
 const response = await axios.post(
-  'http://localhost:3001/api/conversations/1/messages',
+  'http://localhost:3002/api/conversations/1/messages',
   {
     text: 'Olá! Como posso ajudar?',
     actionType: 'manual'
@@ -1085,7 +1085,7 @@ const response = await axios.post(
 **Update Metadata:**
 ```javascript
 const response = await axios.patch(
-  'http://localhost:3001/api/conversations/1/metadata',
+  'http://localhost:3002/api/conversations/1/metadata',
   {
     manualNotes: 'Cliente VIP - prioridade alta',
     tags: ['vip', 'urgente']
