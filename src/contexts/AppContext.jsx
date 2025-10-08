@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import * as api from '../services/api';
 
 const AppContext = createContext();
@@ -194,13 +194,16 @@ export function AppProvider({ children }) {
     dispatch({ type: 'UPDATE_MESSAGE_STATUS', payload: { messageId, status } });
   };
   
-  const handleMessageUpdates = (messages) => {
+  const handleMessageUpdates = useCallback((messages) => {
     messages.forEach(msg => {
       if (msg.status) {
-        updateMessageStatus(msg.id, msg.status);
+        dispatch({
+          type: 'UPDATE_MESSAGE_STATUS',
+          payload: { messageId: msg.id, status: msg.status }
+        });
       }
     });
-  };
+  }, []); // No dependencies - uses dispatch which is stable
   
   const linkConversationToEntity = async (conversationId, linkData) => {
     try {

@@ -13,48 +13,66 @@ export const useMessagePolling = (conversationId, onUpdate, interval = 3000, ena
   const [isPolling, setIsPolling] = useState(false);
   const lastCheckRef = useRef(new Date());
   const intervalRef = useRef(null);
+  const isPollingRef = useRef(false); // Use ref instead of state to prevent re-renders
 
   useEffect(() => {
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     if (!enabled || !conversationId) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
       return;
     }
 
-    const pollForUpdates = async () => {
-      if (isPolling) return; // Prevent concurrent polls
+    console.log(`[Polling] Started for conversation ${conversationId}, interval: ${interval}ms`);
 
+    const pollForUpdates = async () => {
+      // Prevent concurrent polls using ref (doesn't trigger re-render)
+      if (isPollingRef.current) {
+        console.log('[Polling] Skipping - already polling');
+        return;
+      }
+
+      isPollingRef.current = true;
       setIsPolling(true);
+      
       try {
         const result = await api.getMessageUpdates(conversationId, lastCheckRef.current);
         
         if (result.hasUpdates && result.messages.length > 0) {
+          console.log(`[Polling] Found ${result.messages.length} updates`);
           onUpdate(result.messages);
         }
         
         lastCheckRef.current = new Date();
       } catch (error) {
-        console.error('Polling error:', error);
+        console.error('[Polling] Error:', error);
       } finally {
+        isPollingRef.current = false;
         setIsPolling(false);
       }
     };
 
-    // Initial poll
-    pollForUpdates();
+    // Initial poll (delayed to avoid immediate call)
+    const initialTimeout = setTimeout(() => {
+      pollForUpdates();
+    }, 1000);
 
     // Start interval
     intervalRef.current = setInterval(pollForUpdates, interval);
 
     return () => {
+      console.log(`[Polling] Cleanup for conversation ${conversationId}`);
+      clearTimeout(initialTimeout);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      isPollingRef.current = false;
     };
-  }, [conversationId, enabled, interval, onUpdate, isPolling]);
+  }, [conversationId, enabled, interval]); // Removed onUpdate and isPolling from dependencies
 
   return { isPolling };
 };
