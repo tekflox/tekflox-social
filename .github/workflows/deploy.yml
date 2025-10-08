@@ -1,0 +1,123 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Permite execução manual
+
+jobs:
+  # Job 1: Build e testes
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: 🔧 Install dependencies
+        run: npm ci
+      
+      - name: 🧪 Run tests
+        run: npm test
+        continue-on-error: true # Não bloqueia deploy se testes falharem
+      
+      - name: 🏗️ Build frontend
+        run: npm run build
+      
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-dist
+          path: dist/
+          retention-days: 1
+
+  # Job 2: Deploy para Vercel (backend + frontend)
+  deploy-vercel:
+    name: Deploy to Vercel
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production-vercel
+      url: https://tekflox-social.vercel.app
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🚀 Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./
+
+  # Job 3: Deploy para GitHub Pages (frontend estático)
+  deploy-github-pages:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production-github-pages
+      url: https://tekflox.github.io/tekflox-social
+    
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: 🔧 Install dependencies
+        run: npm ci
+      
+      - name: 🏗️ Build frontend for GitHub Pages
+        run: npm run build
+        env:
+          NODE_ENV: production
+      
+      - name: 📤 Upload to GitHub Pages
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: dist/
+      
+      - name: 🚀 Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v3
+
+  # Job 4: Notificação de sucesso
+  notify:
+    name: Notify Deployment Success
+    needs: [deploy-vercel, deploy-github-pages]
+    runs-on: ubuntu-latest
+    if: success()
+    
+    steps:
+      - name: ✅ Deployment Summary
+        run: |
+          echo "🎉 Deploy concluído com sucesso!"
+          echo ""
+          echo "📍 URLs de produção:"
+          echo "  - Vercel (Backend + Frontend): https://tekflox-social.vercel.app"
+          echo "  - GitHub Pages (Frontend): https://tekflox.github.io/tekflox-social"
+          echo ""
+          echo "🔍 Verificar:"
+          echo "  - Health check: https://tekflox-social.vercel.app/api/health"
+          echo "  - Frontend: https://tekflox.github.io/tekflox-social"

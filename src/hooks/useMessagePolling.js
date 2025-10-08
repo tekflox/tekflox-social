@@ -2,77 +2,101 @@ import { useEffect, useRef, useState } from 'react';
 import * as api from '../services/api';
 
 /**
- * Hook para polling de atualizações de mensagens
+ * Hook para LONG POLLING de atualizações de mensagens
+ * 
+ * Mantém a conexão aberta até haver updates ou timeout (default: 15s)
+ * Aguarda 3 segundos entre reconexões para evitar sobrecarga
  * 
  * @param {number} conversationId - ID da conversa
  * @param {function} onUpdate - Callback quando houver atualizações
- * @param {number} interval - Intervalo de polling em ms (padrão: 3000)
+ * @param {number} timeout - Timeout da requisição em ms (padrão: 15000)
  * @param {boolean} enabled - Se o polling está ativo
  */
-export const useMessagePolling = (conversationId, onUpdate, interval = 3000, enabled = true) => {
+export const useMessagePolling = (conversationId, onUpdate, timeout = 15000, enabled = true) => {
   const [isPolling, setIsPolling] = useState(false);
   const lastCheckRef = useRef(new Date());
-  const intervalRef = useRef(null);
-  const isPollingRef = useRef(false); // Use ref instead of state to prevent re-renders
+  const abortControllerRef = useRef(null);
+  const isPollingRef = useRef(false);
+  const reconnectDelay = 3000; // 3 segundos entre requests
 
   useEffect(() => {
-    // Clear any existing interval
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    // Abort any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
 
     if (!enabled || !conversationId) {
       return;
     }
 
-    console.log(`[Polling] Started for conversation ${conversationId}, interval: ${interval}ms`);
+    console.log(`[Long Polling] Started for conversation ${conversationId}, timeout: ${timeout}ms, delay: ${reconnectDelay}ms`);
 
-    const pollForUpdates = async () => {
-      // Prevent concurrent polls using ref (doesn't trigger re-render)
+    const longPoll = async () => {
+      // Prevent concurrent polls
       if (isPollingRef.current) {
-        console.log('[Polling] Skipping - already polling');
+        console.log('[Long Polling] Skipping - already polling');
         return;
       }
 
       isPollingRef.current = true;
       setIsPolling(true);
       
+      // Create abort controller for this request
+      abortControllerRef.current = new AbortController();
+      
       try {
-        const result = await api.getMessageUpdates(conversationId, lastCheckRef.current);
+        const result = await api.getMessageUpdates(
+          conversationId, 
+          lastCheckRef.current,
+          timeout,
+          abortControllerRef.current.signal
+        );
         
         if (result.hasUpdates && result.messages.length > 0) {
-          console.log(`[Polling] Found ${result.messages.length} updates`);
+          console.log(`[Long Polling] Found ${result.messages.length} updates`);
           onUpdate(result.messages);
+          lastCheckRef.current = new Date();
+        } else if (result.timeout) {
+          console.log('[Long Polling] Timeout reached, reconnecting in 3s...');
         }
         
-        lastCheckRef.current = new Date();
+        // Aguarda 3 segundos antes de reconectar (evita sobrecarga)
+        if (enabled && conversationId) {
+          setTimeout(() => longPoll(), reconnectDelay);
+        }
+        
       } catch (error) {
-        console.error('[Polling] Error:', error);
+        if (error.name === 'AbortError') {
+          console.log('[Long Polling] Request aborted (conversation changed)');
+        } else {
+          console.error('[Long Polling] Error:', error);
+          // Retry após 5 segundos em caso de erro
+          if (enabled && conversationId) {
+            setTimeout(() => longPoll(), 5000);
+          }
+        }
       } finally {
         isPollingRef.current = false;
         setIsPolling(false);
       }
     };
 
-    // Initial poll (delayed to avoid immediate call)
+    // Inicia long polling após pequeno delay
     const initialTimeout = setTimeout(() => {
-      pollForUpdates();
-    }, 1000);
-
-    // Start interval
-    intervalRef.current = setInterval(pollForUpdates, interval);
+      longPoll();
+    }, 500);
 
     return () => {
-      console.log(`[Polling] Cleanup for conversation ${conversationId}`);
+      console.log(`[Long Polling] Cleanup for conversation ${conversationId}`);
       clearTimeout(initialTimeout);
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
       isPollingRef.current = false;
     };
-  }, [conversationId, enabled, interval]); // Removed onUpdate and isPolling from dependencies
+  }, [conversationId, enabled, timeout]);
 
   return { isPolling };
 };

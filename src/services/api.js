@@ -1,16 +1,57 @@
 import axios from 'axios';
 
-// Determine API URL based on environment
-const BASE_URL = import.meta.env.PROD 
-  ? 'https://tekflox-social.vercel.app/api'  // Production: Vercel backend
-  : 'http://localhost:3002/api';  // Development: local mock server (porta 3002)
-
+// Create axios instance without fixed baseURL (will be set dynamically)
 const api = axios.create({
-  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// Request interceptor: Add dynamic baseURL and auth token
+api.interceptors.request.use(
+  (config) => {
+    // Get base URL from localStorage (set during login)
+    const baseURL = localStorage.getItem('baseURL') || 'http://localhost:3002';
+    
+    // Get token from localStorage
+    const token = localStorage.getItem('token');
+    
+    // Set baseURL dynamically
+    config.baseURL = `${baseURL}/api`;
+    
+    // Add auth token if available
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor: Handle 401 (token expired/invalid)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // If 401 Unauthorized, clear auth and redirect to login
+    if (error.response?.status === 401) {
+      console.warn('[API] 401 Unauthorized - clearing auth and redirecting to login');
+      
+      // Clear authentication data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      // Redirect to login (only if not already there)
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
 
 // =====================================================
 // CONVERSATIONS
@@ -67,9 +108,14 @@ export const updateMessageStatus = async (messageId, status) => {
   return data;
 };
 
-export const getMessageUpdates = async (conversationId, since) => {
+export const getMessageUpdates = async (conversationId, since, timeout = 15000, signal = null) => {
   const { data } = await api.get(`/conversations/${conversationId}/messages/updates`, {
-    params: { since: since?.toISOString() }
+    params: { 
+      since: since?.toISOString(),
+      timeout: timeout
+    },
+    signal: signal, // For aborting request
+    timeout: timeout + 5000 // Axios timeout 5s maior que server timeout
   });
   return data;
 };
@@ -133,6 +179,12 @@ export const getCustomerOrders = async (customerId) => {
 
 export const searchOrders = async (query) => {
   const { data } = await api.get('/orders/search', { params: { q: query } });
+  return data;
+};
+
+// Search orders for autocomplete (últimos 45 dias)
+export const searchOrdersAutocomplete = async (query) => {
+  const { data } = await api.get('/search/orders', { params: { q: query } });
   return data;
 };
 

@@ -1,18 +1,26 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Filter, Phone, Video, MoreVertical, Send, Paperclip, Smile, Info, ShoppingBag, User, Package, CheckCheck, Clock, MessageSquare, LayoutDashboard, Settings, ChevronRight, ChevronLeft, Tag, StickyNote, Sparkles, Check } from 'lucide-react';
+import { Search, Filter, Phone, Video, MoreVertical, Send, Paperclip, Smile, Info, ShoppingBag, User, Package, CheckCheck, Clock, MessageSquare, LayoutDashboard, Settings, ChevronRight, ChevronLeft, Tag, StickyNote, Sparkles, Check, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useMessagePolling } from '../hooks/useMessagePolling';
+import { useConversationsPolling } from '../hooks/useConversationsPolling';
 import * as api from '../services/api';
 import MessageBubble from '../components/MessageBubble';
-import LinkingModal from '../components/LinkingModal';
+import OrderSearchBox from '../components/OrderSearchBox';
 
 export default function ConversationsNew() {
   const navigate = useNavigate();
+  const { logout, user } = useAuth();
   const { state, selectConversation, sendMessage, handleMessageUpdates } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
+  
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
   const [messageText, setMessageText] = useState('');
-  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showOrderSearch, setShowOrderSearch] = useState(false);
   const [showCustomerPanel, setShowCustomerPanel] = useState(true);
   const [aiSuggestion, setAiSuggestion] = useState(null);
   const [selectedMode, setSelectedMode] = useState(null); // 'accept', 'edit', 'manual'
@@ -20,12 +28,44 @@ export default function ConversationsNew() {
   const [selectedPlatforms, setSelectedPlatforms] = useState(['whatsapp', 'instagram', 'facebook']); // Todas selecionadas por padrão
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   
-  // Message polling for real-time updates
+  // LONG POLLING for real-time message updates (dentro de uma conversa)
+  // - Timeout: 15 segundos (mantém conexão aberta)
+  // - Delay entre requests: 3 segundos (evita sobrecarga)
   useMessagePolling(
     state.selectedConversation?.id,
     handleMessageUpdates,
-    3000, // Poll every 3 seconds
+    15000, // Long polling: timeout de 15 segundos
     !!state.selectedConversation // Only poll when conversation is selected
+  );
+  
+  // POLLING for conversations list updates (novas conversas e mensagens)
+  // - Intervalo: 10 segundos (polling tradicional)
+  // - Detecta: novas conversas, novas mensagens, mudanças de status
+  const { isPolling: isPollingConversations } = useConversationsPolling(
+    async (updatedConversations) => {
+      // Callback quando houver mudanças na lista de conversas
+      const unreadCount = updatedConversations.filter(c => c.unread).length;
+      const pendingCount = updatedConversations.filter(c => c.status === 'pending').length;
+      
+      console.log('[ConversationsNew] 🔔 Nova atividade detectada!', {
+        total: updatedConversations.length,
+        unread: unreadCount,
+        pending: pendingCount,
+        timestamp: new Date().toLocaleTimeString()
+      });
+      
+      // Disparar evento customizado para AppContext recarregar as conversas
+      // O AppContext escuta esse evento e chama loadConversations() com os filtros aplicados
+      window.dispatchEvent(new CustomEvent('conversations-updated', {
+        detail: {
+          total: updatedConversations.length,
+          unread: unreadCount,
+          pending: pendingCount
+        }
+      }));
+    },
+    user?.id !== undefined, // Só faz polling se estiver autenticado (user existe)
+    10000 // 10 segundos entre checks
   );
   
   // States for sidebar functionality
@@ -34,12 +74,10 @@ export default function ConversationsNew() {
   const [manualNotes, setManualNotes] = useState('');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [tags, setTags] = useState([]);
-  const [labels, setLabels] = useState([]);
   const [newTag, setNewTag] = useState('');
-  const [newLabel, setNewLabel] = useState('');
   const [showAddTag, setShowAddTag] = useState(false);
-  const [showAddLabel, setShowAddLabel] = useState(false);
-  const [showManageLabels, setShowManageLabels] = useState(false);
+  const [profileDetails, setProfileDetails] = useState('');
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   
   const aiInsightsEndRef = useRef(null);
   
@@ -60,7 +98,7 @@ export default function ConversationsNew() {
     }
   }, [state.selectedConversation]);
 
-  // Load conversation metadata (notes, tags, labels, AI insights)
+  // Load conversation metadata (notes, tags, AI insights)
   const loadConversationMetadata = async () => {
     if (!state.selectedConversation) return;
     
@@ -82,7 +120,7 @@ export default function ConversationsNew() {
       
       setManualNotes(response.data.manualNotes || '');
       setTags(response.data.tags || []);
-      setLabels(response.data.labels || []);
+      setProfileDetails(response.data.profileDetails || '');
     } catch (error) {
       console.error('Error loading conversation metadata:', error);
     }
@@ -160,6 +198,71 @@ export default function ConversationsNew() {
     }
   };
 
+  // Save Profile Details (inline editing)
+  const saveProfileDetails = async (details) => {
+    try {
+      await api.updateConversationMetadata(state.selectedConversation.id, { profileDetails: details });
+      setProfileDetails(details);
+      console.log('Profile details saved:', details);
+    } catch (error) {
+      console.error('Error saving profile details:', error);
+    }
+  };
+
+  // Link Order to Conversation
+  const handleLinkOrder = async (order) => {
+    if (!state.selectedConversation) return;
+    
+    try {
+      console.log('Linking order to conversation:', order);
+      
+      // Buscar dados completos do cliente
+      const customer = await api.getCustomer(order.customerId);
+      
+      // Buscar pedidos recentes do cliente
+      const customerOrders = await api.getCustomerOrders(order.customerId);
+      
+      // Montar objeto do cliente vinculado
+      const linkedCustomer = {
+        id: customer.id,
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+        avatar: customer.avatar,
+        recentOrders: customerOrders.map(o => ({
+          id: o.id,
+          number: o.orderNumber,
+          total: o.total,
+          status: o.status,
+          date: o.date,
+          items: o.items
+        }))
+      };
+      
+      // Atualizar conversa com cliente vinculado
+      const updatedConversation = {
+        ...state.selectedConversation,
+        linkedCustomer,
+        customerId: customer.id,
+        orderId: order.id
+      };
+      
+      // Atualizar no backend (se houver endpoint)
+      // await api.updateConversation(state.selectedConversation.id, { customerId: customer.id, orderId: order.id });
+      
+      // Atualizar no contexto
+      selectConversation(updatedConversation);
+      
+      // Fechar busca
+      setShowOrderSearch(false);
+      
+      console.log('Order linked successfully:', linkedCustomer);
+    } catch (error) {
+      console.error('Error linking order:', error);
+      alert('Erro ao vincular pedido. Tente novamente.');
+    }
+  };
+
   // Add Tag
   const addTag = async () => {
     if (!newTag.trim()) return;
@@ -186,34 +289,7 @@ export default function ConversationsNew() {
     }
   };
 
-  // Add Label
-  const addLabel = async () => {
-    if (!newLabel.trim()) return;
-    
-    try {
-      const labelObj = { text: newLabel.trim(), color: getRandomLabelColor() };
-      const updatedLabels = [...labels, labelObj];
-      await api.updateConversationMetadata(state.selectedConversation.id, { labels: updatedLabels });
-      setLabels(updatedLabels);
-      setNewLabel('');
-      setShowAddLabel(false);
-    } catch (error) {
-      console.error('Error adding label:', error);
-    }
-  };
-
-  // Remove Label
-  const removeLabel = async (labelText) => {
-    try {
-      const updatedLabels = labels.filter(l => l.text !== labelText);
-      await api.updateConversationMetadata(state.selectedConversation.id, { labels: updatedLabels });
-      setLabels(updatedLabels);
-    } catch (error) {
-      console.error('Error removing label:', error);
-    }
-  };
-
-  // Random label color
+  // Random tag color
   const getRandomLabelColor = () => {
     const colors = ['green', 'blue', 'red', 'yellow', 'purple', 'pink', 'indigo'];
     return colors[Math.floor(Math.random() * colors.length)];
@@ -270,19 +346,7 @@ export default function ConversationsNew() {
     handleSendMessage(messageText, 'manual');
   };
 
-  const handleLinkEntity = async (linkData) => {
-    if (!state.selectedConversation) return;
-    try {
-      await api.linkConversation(state.selectedConversation.id, linkData);
-      setShowLinkModal(false);
-      // Reload conversation to get updated data
-      await selectConversation(state.selectedConversation);
-    } catch (error) {
-      console.error('Failed to link entity:', error);
-    }
-  };
-
-    // Toggle platform filter
+  // Toggle platform filter
   const togglePlatform = (platform) => {
     setSelectedPlatforms(prev => {
       if (prev.includes(platform)) {
@@ -360,6 +424,28 @@ export default function ConversationsNew() {
           >
             <Settings className="w-5 h-5 flex-shrink-0" />
             {sidebarExpanded && <span className="text-sm">Configurações</span>}
+          </button>
+        </div>
+
+        {/* User Info & Logout (bottom) */}
+        <div className="mt-auto w-full px-2 space-y-2">
+          {/* User info */}
+          {sidebarExpanded && user && (
+            <div className="px-3 py-2 text-gray-400 text-xs border-t border-gray-800 pt-4">
+              <p className="font-semibold text-white truncate">{user.name}</p>
+              <p className="truncate">{user.email}</p>
+              <p className="text-gray-500 mt-1">{user.role === 'admin' ? 'Administrador' : 'Agente'}</p>
+            </div>
+          )}
+
+          {/* Logout button */}
+          <button
+            onClick={handleLogout}
+            className="flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors text-gray-400 hover:text-red-400 hover:bg-gray-800 w-full"
+            title="Sair"
+          >
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            {sidebarExpanded && <span className="text-sm">Sair</span>}
           </button>
         </div>
       </div>
@@ -675,69 +761,52 @@ export default function ConversationsNew() {
               <p className="text-sm text-gray-500">{state.selectedConversation.contact?.email || 'Email não disponível'}</p>
             </div>
 
-            {/* Link to Customer Button */}
-            {!state.selectedConversation.linkedCustomer && (
-              <button
-                onClick={() => setShowLinkModal(true)}
-                className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium hover:shadow-lg transition-all"
-              >
-                🔗 Vincular Cliente/Pedido
-              </button>
-            )}
-
-            {/* Etiquetas */}
+            {/* Dados do Perfil */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
-                  <Tag className="w-5 h-5 text-purple-500" />
-                  <span>Etiquetas</span>
+                  <User className="w-5 h-5 text-purple-500" />
+                  <span>Dados do Perfil</span>
                 </h3>
-                <button 
-                  onClick={() => setShowManageLabels(!showManageLabels)}
-                  className="text-xs text-purple-600 font-medium hover:underline"
-                >
-                  {showManageLabels ? 'Fechar' : 'Gerir'}
-                </button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {labels.map((label, index) => (
-                  <span 
-                    key={index}
-                    className={`px-3 py-1 bg-${label.color}-100 text-${label.color}-700 text-xs rounded-full flex items-center space-x-1 group`}
-                  >
-                    <span>{label.text}</span>
-                    {showManageLabels && (
-                      <button 
-                        onClick={() => removeLabel(label.text)}
-                        className="ml-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </span>
-                ))}
-                {showAddLabel ? (
-                  <div className="flex items-center space-x-1">
-                    <input
-                      type="text"
-                      value={newLabel}
-                      onChange={(e) => setNewLabel(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && addLabel()}
-                      placeholder="Nova etiqueta"
-                      className="px-2 py-1 text-xs border border-purple-300 rounded-full focus:outline-none focus:border-purple-500"
-                      autoFocus
+              <div className="space-y-2 text-sm">
+                <div className="flex items-start space-x-2">
+                  <span className="text-gray-500 min-w-[80px]">Instagram:</span>
+                  <span className="text-gray-900 font-medium">@{state.selectedConversation.contact.username}</span>
+                </div>
+                <div className="flex flex-col space-y-1">
+                  <span className="text-gray-500 text-xs font-medium">Sobre:</span>
+                  {isEditingProfile || !profileDetails ? (
+                    <textarea
+                      value={profileDetails}
+                      onChange={(e) => setProfileDetails(e.target.value)}
+                      onBlur={() => {
+                        setIsEditingProfile(false);
+                        saveProfileDetails(profileDetails);
+                      }}
+                      placeholder="Adicione detalhes sobre este contato..."
+                      className="w-full px-3 py-2 text-xs border border-purple-300 rounded-lg focus:outline-none focus:border-purple-500 resize-none bg-white"
+                      rows={3}
+                      autoFocus={isEditingProfile}
                     />
-                    <button onClick={addLabel} className="text-green-600 text-xs">✓</button>
-                    <button onClick={() => { setShowAddLabel(false); setNewLabel(''); }} className="text-red-600 text-xs">×</button>
-                  </div>
-                ) : (
-                  <button 
-                    onClick={() => setShowAddLabel(true)}
-                    className="px-3 py-1 border-2 border-dashed border-gray-300 text-gray-500 text-xs rounded-full hover:border-purple-400 hover:text-purple-600 transition-colors"
-                  >
-                    + Adicionar
-                  </button>
-                )}
+                  ) : (
+                    <div 
+                      onClick={() => setIsEditingProfile(true)} 
+                      className="cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors border border-transparent hover:border-gray-200"
+                    >
+                      <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{profileDetails}</p>
+                      <p className="text-xs text-gray-400 mt-1">Clique para editar</p>
+                    </div>
+                  )}
+                  {!isEditingProfile && !profileDetails && (
+                    <button 
+                      onClick={() => setIsEditingProfile(true)}
+                      className="text-xs text-purple-600 font-medium hover:underline text-left"
+                    >
+                      + Adicionar detalhes
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -787,46 +856,6 @@ export default function ConversationsNew() {
               </div>
             </div>
 
-            {/* Dados do Perfil */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
-                  <User className="w-5 h-5 text-purple-500" />
-                  <span>Dados do Perfil</span>
-                </h3>
-                <button className="text-xs text-purple-600 font-medium hover:underline">
-                  Ver perfil
-                </button>
-              </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-start space-x-2">
-                  <span className="text-gray-500 min-w-[80px]">Instagram:</span>
-                  <span className="text-gray-900 font-medium">@{state.selectedConversation.contact.username}</span>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <span className="text-gray-500 min-w-[80px]">Sobre:</span>
-                  <span className="text-gray-700 text-xs">Adicione detalhes sobre este contato...</span>
-                </div>
-                <button className="text-xs text-purple-600 font-medium hover:underline">
-                  + Adicionar detalhes
-                </button>
-              </div>
-            </div>
-
-            {/* Fase do Lead */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
-                <span>📊</span>
-                <span>Fase do Lead</span>
-              </h3>
-              <button className="w-full py-2 px-4 border-2 border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:border-purple-400 hover:text-purple-600 transition-colors">
-                Marcar como lead
-              </button>
-              <p className="text-xs text-gray-500">
-                Monitore as interações importantes com o cliente.
-              </p>
-            </div>
-
             {/* Notes - Notas Manuais (inline editing) */}
             <div className="space-y-3">
               <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
@@ -857,6 +886,32 @@ export default function ConversationsNew() {
                 )}
               </div>
             </div>
+
+            {/* Order Search / Link Button */}
+            {!state.selectedConversation.linkedCustomer && (
+              <div className="space-y-3">
+                {!showOrderSearch ? (
+                  <button
+                    onClick={() => setShowOrderSearch(true)}
+                    className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center space-x-2"
+                  >
+                    <ShoppingBag className="w-5 h-5" />
+                    <span>Vincular Cliente/Pedido</span>
+                  </button>
+                ) : (
+                  <div className="p-4 bg-purple-50 border-2 border-purple-200 rounded-xl">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center space-x-2">
+                      <ShoppingBag className="w-4 h-4 text-purple-600" />
+                      <span>Buscar Pedido</span>
+                    </h3>
+                    <OrderSearchBox
+                      onSelectOrder={handleLinkOrder}
+                      onClose={() => setShowOrderSearch(false)}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Customer Details - Only if linked */}
             {state.selectedConversation.linkedCustomer && (
@@ -992,14 +1047,6 @@ export default function ConversationsNew() {
         </div>
       )}
 
-      {/* Linking Modal */}
-      {showLinkModal && (
-        <LinkingModal
-          conversation={state.selectedConversation}
-          onClose={() => setShowLinkModal(false)}
-          onLink={handleLinkEntity}
-        />
-      )}
     </div>
   );
 }

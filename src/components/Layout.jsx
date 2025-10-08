@@ -1,11 +1,18 @@
 import { useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, MessageSquare, Settings, ChevronRight, ChevronLeft } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, Settings, ChevronRight, ChevronLeft, LogOut } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { logout, user } = useAuth()
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
+  
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
+  }
   
   const navItems = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -45,6 +52,28 @@ function Layout() {
               </button>
             )
           })}
+        </div>
+
+        {/* User Info & Logout (bottom) */}
+        <div className="mt-auto w-full px-2 space-y-2">
+          {/* User info */}
+          {sidebarExpanded && user && (
+            <div className="px-3 py-2 text-gray-400 text-xs border-t border-gray-800 pt-4">
+              <p className="font-semibold text-white truncate">{user.name}</p>
+              <p className="truncate">{user.email}</p>
+              <p className="text-gray-500 mt-1">{user.role === 'admin' ? 'Administrador' : 'Agente'}</p>
+            </div>
+          )}
+
+          {/* Logout button */}
+          <button
+            onClick={handleLogout}
+            className="flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors text-gray-400 hover:text-red-400 hover:bg-gray-800 w-full"
+            title="Sair"
+          >
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            {sidebarExpanded && <span className="text-sm">Sair</span>}
+          </button>
         </div>
       </div>
       

@@ -9,6 +9,9 @@
 [![Tailwind](https://img.shields.io/badge/Tailwind-3.3.6-38B2AC.svg)](https://tailwindcss.com/)
 [![Express](https://img.shields.io/badge/Express-4.18.2-000000.svg)](https://expressjs.com/)
 
+[![Deploy to Production](https://github.com/tekflox/tekflox-social/actions/workflows/deploy.yml/badge.svg)](https://github.com/tekflox/tekflox-social/actions/workflows/deploy.yml)
+[![CI](https://github.com/tekflox/tekflox-social/actions/workflows/ci.yml/badge.svg)](https://github.com/tekflox/tekflox-social/actions/workflows/ci.yml)
+
 [Início Rápido](#-início-rápido) • [API Docs](./docs/API.md) • [Deploy](./DEPLOY.md) • [Telas](#-telas-da-aplicação) • [📚 Docs](./docs/)
 
 **🌐 Aplicações Online:**
@@ -29,6 +32,7 @@ Este README fornece uma visão geral do projeto. Para documentação técnica co
 - **🗂️ [docs/DOCUMENTATION_INDEX.md](./docs/DOCUMENTATION_INDEX.md)** - Índice navegável
 - **🚀 [DEPLOY.md](./DEPLOY.md)** - Guia de deploy Vercel (backend + frontend)
 - **📄 [GITHUB_PAGES.md](./GITHUB_PAGES.md)** - Deploy GitHub Pages (frontend)
+- **⚙️ [GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md)** - CI/CD automático com GitHub Actions
 - **🤖 [instructions/tekflox-social.instructions.md](./instructions/tekflox-social.instructions.md)** - Contexto para IA
 
 ---

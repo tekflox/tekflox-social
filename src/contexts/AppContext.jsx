@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import * as api from '../services/api';
+import { useAuth } from './AuthContext';
 
 const AppContext = createContext();
 
@@ -122,18 +123,39 @@ function appReducer(state, action) {
 }
 
 export function AppProvider({ children }) {
+  const { isAuthenticated } = useAuth();
   const [state, dispatch] = useReducer(appReducer, initialState);
   
-  // Load initial data
+  // Load initial data (only when authenticated)
   useEffect(() => {
-    loadDashboardStats();
-    loadSettings();
-  }, []);
+    if (isAuthenticated) {
+      loadDashboardStats();
+      loadSettings();
+    }
+  }, [isAuthenticated]);
   
-  // Load conversations when filters change
+  // Load conversations when filters change (only when authenticated)
   useEffect(() => {
-    loadConversations();
-  }, [state.selectedPlatforms, state.statusFilter]);
+    if (isAuthenticated) {
+      loadConversations();
+    }
+  }, [isAuthenticated, state.selectedPlatforms, state.statusFilter]);
+  
+  // Listen for conversations-updated event from polling
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    const handleConversationsUpdated = () => {
+      console.log('[AppContext] 📥 Recebendo evento de atualização de conversas');
+      loadConversations();
+    };
+    
+    window.addEventListener('conversations-updated', handleConversationsUpdated);
+    
+    return () => {
+      window.removeEventListener('conversations-updated', handleConversationsUpdated);
+    };
+  }, [isAuthenticated, state.selectedPlatforms, state.statusFilter]);
   
   // ==================== Actions ====================
   
