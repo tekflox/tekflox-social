@@ -32,18 +32,31 @@ jobs:
         run: npm ci
       
       - name: 🧪 Run tests
-        run: npm test
-      
-      - name: 🏗️ Test build
-        run: npm run build
-      
-      - name: 📊 Upload coverage
+        run: npm test -- --run --reporter=verbose
+        continue-on-error: false
+
+      - name: 📊 Generate coverage report
+        if: matrix.node-version == 18
+        run: npm run test:coverage
+        continue-on-error: true
+
+      - name: 📈 Upload coverage
         if: matrix.node-version == 18
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage/
           retention-days: 7
+
+      - name: 📋 Test Summary
+        if: always()
+        run: |
+          echo "📊 Test Results Summary"
+          echo "Node.js Version: ${{ matrix.node-version }}"
+          echo "Check the test output above for details"
+
+      - name: 🏗️ Test build
+        run: npm run build
       
       - name: ✅ All checks passed
         run: echo "✅ CI checks passed for Node.js ${{ matrix.node-version }}"

@@ -26,8 +26,12 @@ jobs:
         run: npm ci
       
       - name: 🧪 Run tests
-        run: npm test
+        run: npm test -- --run --reporter=verbose
         continue-on-error: true # Não bloqueia deploy se testes falharem
+
+      - name: 📊 Generate coverage report
+        run: npm run test:coverage
+        continue-on-error: true
       
       - name: 🏗️ Build frontend
         run: npm run build
