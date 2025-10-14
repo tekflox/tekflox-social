@@ -202,6 +202,11 @@ let messages = [
   { id: 6, conversationId: 4, sender: 'customer', text: 'Esse produto é original?', timestamp: new Date('2025-10-04T16:20:00'), type: 'text', status: 'read' },
   { id: 7, conversationId: 5, sender: 'customer', text: 'Vocês fazem entrega em Brasília?', timestamp: new Date('2025-10-04T14:10:00'), type: 'text', status: 'read' },
   { id: 8, conversationId: 5, sender: 'agent', text: 'Sim! Fazemos entregas para todo o Brasil. 🚚', timestamp: new Date('2025-10-04T14:15:00'), type: 'text', actionType: 'ai_accepted', status: 'read' },
+  
+  // Messages with images
+  { id: 9, conversationId: 1, sender: 'customer', text: 'Olha essa foto do produto que eu quero!', image: 'https://picsum.photos/400/300?random=10', timestamp: new Date('2025-10-05T10:32:00'), type: 'image', status: 'read' },
+  { id: 10, conversationId: 1, sender: 'agent', text: 'Sim, temos esse modelo! 😊', image: 'https://picsum.photos/400/300?random=11', timestamp: new Date('2025-10-05T10:35:00'), type: 'image', actionType: 'manual', status: 'read' },
+  { id: 11, conversationId: 2, sender: 'customer', image: 'https://picsum.photos/400/300?random=12', timestamp: new Date('2025-10-05T09:17:00'), type: 'image', status: 'read' }, // Image only, no text
 ];
 
 const posts = [
@@ -382,12 +387,43 @@ app.post('/api/auth/logout', validateToken, (req, res) => {
 // ==================== CONVERSATIONS ====================
 
 app.get('/api/conversations', validateToken, (req, res) => {
-  const { platform, status } = req.query;
+  const { platform, status, last_message_id } = req.query;
+  
+  // Filter conversations
   let filtered = [...conversations];
   if (platform) filtered = filtered.filter(c => c.platform === platform);
   if (status) filtered = filtered.filter(c => c.status === status);
   filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  res.json(filtered);
+  
+  // Include messages for each conversation
+  const lastMessageId = last_message_id ? parseInt(last_message_id) : 0;
+  
+  const conversationsWithMessages = filtered.map(conv => {
+    // Get all messages for this conversation
+    let conversationMessages = messages.filter(m => m.conversationId === conv.id);
+    
+    // If last_message_id provided, only return NEW messages
+    if (lastMessageId > 0) {
+      conversationMessages = conversationMessages.filter(m => m.id > lastMessageId);
+    }
+    
+    // Sort by timestamp
+    conversationMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    
+    return {
+      ...conv,
+      messages: conversationMessages
+    };
+  });
+  
+  // Get highest message ID for next polling
+  const allMessageIds = messages.map(m => m.id);
+  const maxMessageId = allMessageIds.length > 0 ? Math.max(...allMessageIds) : 0;
+  
+  res.json({
+    conversations: conversationsWithMessages,
+    last_message_id: maxMessageId
+  });
 });
 
 app.get('/api/conversations/:id', validateToken, (req, res) => {

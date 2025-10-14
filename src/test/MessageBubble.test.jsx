@@ -122,4 +122,104 @@ describe('MessageBubble', () => {
 
     expect(screen.queryByText(/IA Aceita|IA Editada|Manual/)).not.toBeInTheDocument()
   })
+
+  it('deve renderizar imagem quando message.image está presente', () => {
+    const message = {
+      id: 9,
+      text: 'Veja esta imagem',
+      sender: 'customer',
+      timestamp: new Date(),
+      actionType: null,
+      image: 'https://example.com/image.jpg'
+    }
+
+    render(<MessageBubble message={message} />)
+
+    const img = screen.getByRole('img')
+    expect(img).toHaveAttribute('src', 'https://example.com/image.jpg')
+  })
+
+  it('deve renderizar imagem do attachments Facebook format', () => {
+    const message = {
+      id: 10,
+      text: 'Imagem via attachment',
+      sender: 'customer',
+      timestamp: new Date(),
+      actionType: null,
+      attachments: [
+        {
+          type: 'image',
+          payload: {
+            url: 'https://facebook.com/image.png'
+          }
+        }
+      ]
+    }
+
+    render(<MessageBubble message={message} />)
+
+    const img = screen.getByRole('img')
+    expect(img).toHaveAttribute('src', 'https://facebook.com/image.png')
+  })
+
+  it('deve renderizar texto quando não há imagem', () => {
+    const message = {
+      id: 11,
+      text: 'Mensagem sem imagem',
+      sender: 'customer',
+      timestamp: new Date(),
+      actionType: null
+    }
+
+    render(<MessageBubble message={message} />)
+
+    expect(screen.getByText('Mensagem sem imagem')).toBeInTheDocument()
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
+
+  it('deve ignorar attachments que não são imagens', () => {
+    const message = {
+      id: 12,
+      text: 'Arquivo PDF',
+      sender: 'customer',
+      timestamp: new Date(),
+      actionType: null,
+      attachments: [
+        {
+          type: 'file',
+          payload: {
+            url: 'https://example.com/document.pdf'
+          }
+        }
+      ]
+    }
+
+    render(<MessageBubble message={message} />)
+
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
+
+  it('deve priorizar message.image sobre attachments', () => {
+    const message = {
+      id: 13,
+      text: 'Múltiplas imagens',
+      sender: 'customer',
+      timestamp: new Date(),
+      actionType: null,
+      image: 'https://example.com/primary.jpg',
+      attachments: [
+        {
+          type: 'image',
+          payload: {
+            url: 'https://example.com/secondary.jpg'
+          }
+        }
+      ]
+    }
+
+    render(<MessageBubble message={message} />)
+
+    const img = screen.getByRole('img')
+    expect(img).toHaveAttribute('src', 'https://example.com/primary.jpg')
+  })
 })

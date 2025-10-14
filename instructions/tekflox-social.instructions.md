@@ -812,6 +812,10 @@ npm run deploy
 
 Sem o `basename`, React Router não funciona em subdiretórios do GitHub Pages.
 
+### Gerar Token de Acesso
+
+curl -s -X POST "http://localhost:8100/wp-json/tekflox-social/v1/auth/login" -H "Content-Type: application/json" -d '{"username": "sapatariacrispal@gmail.com", "password": "Admin123_fredfred"}' | python3 -m json.tool
+
 ---
 
 ## 🎓 Para Novas Features

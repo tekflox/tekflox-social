@@ -36,22 +36,32 @@ export function AuthProvider({ children }) {
 
       console.log('[Auth] Attempting login to:', normalizedURL);
 
-      const response = await axios.post(`${normalizedURL}/api/auth/login`, {
+      // Detect if it's WordPress backend (contains /wp-json/) or mock server
+      const isWordPress = normalizedURL.includes('/wp-json/');
+      const loginPath = isWordPress ? '/v1/auth/login' : '/api/auth/login';
+
+      console.log('[Auth] Using login path:', loginPath);
+
+      const response = await axios.post(`${normalizedURL}${loginPath}`, {
         username,
         password
       });
 
-      const { token: newToken, user: userData } = response.data;
+      const { token: newToken, user: userData } = response.data.success !== undefined
+        ? response.data  // WordPress format
+        : { token: response.data.token, user: response.data.user }; // Mock server format
 
       // Save to state
       setToken(newToken);
       setUser(userData);
       setBaseURL(normalizedURL);
 
-      // Persist to localStorage
+      // Persist to localStorage (WITHOUT credentials for security)
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('baseURL', normalizedURL);
+      // NOTE: We do NOT save username/password for security reasons
+      // User will need to re-login when token expires (every 2 days)
 
       console.log('[Auth] Login successful:', userData.username);
       setIsLoading(false);
@@ -94,21 +104,37 @@ export function AuthProvider({ children }) {
     console.log('[Auth] Logout successful');
   };
 
-  // Verify token on mount (optional)
+  // Auto-login: verify token on mount
   useEffect(() => {
     const verifyToken = async () => {
       if (token && baseURL) {
+        setIsLoading(true);
         try {
-          const response = await axios.get(`${baseURL}/api/auth/me`, {
+          // Detect if it's WordPress backend or mock server
+          const isWordPress = baseURL.includes('/wp-json/');
+          const validatePath = isWordPress ? '/v1/auth/validate' : '/api/auth/me';
+
+          console.log('[Auth] Auto-login: Verifying token...');
+          
+          const response = await axios.get(`${baseURL}${validatePath}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           
           // Update user data if changed
-          setUser(response.data.user);
-          localStorage.setItem('user', JSON.stringify(response.data.user));
+          const userData = response.data.user;
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+          
+          console.log('[Auth] Auto-login successful:', userData.username);
+          setIsLoading(false);
         } catch (err) {
-          console.warn('[Auth] Token verification failed, logging out:', err);
-          logout();
+          console.warn('[Auth] Token expired or invalid, logging out:', err);
+          // Clear everything and force re-login
+          setToken(null);
+          setUser(null);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setIsLoading(false);
         }
       }
     };

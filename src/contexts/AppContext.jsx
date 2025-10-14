@@ -12,12 +12,13 @@ const initialState = {
     avatar: 'https://i.pravatar.cc/150?img=20',
   },
   
-  // Conversations
-  conversations: [],
+  // Conversations (now includes messages)
+  conversations: [], // Each conversation has .messages array
   selectedConversation: null,
   conversationMessages: [],
   loading: false,
   error: null,
+  lastMessageId: 0, // For incremental polling
   
   // Filters
   selectedPlatforms: ['instagram', 'facebook', 'whatsapp'],
@@ -51,10 +52,57 @@ function appReducer(state, action) {
       
     // Conversations
     case 'SET_CONVERSATIONS':
-      return { ...state, conversations: action.payload, loading: false };
+      return { 
+        ...state, 
+        conversations: action.payload.conversations || action.payload, 
+        lastMessageId: action.payload.last_message_id || state.lastMessageId,
+        loading: false 
+      };
+      
+    case 'MERGE_CONVERSATIONS':
+      // Merge updated conversations from polling into existing array
+      // Updated conversations have new messages that need to be merged
+      const updatedConvs = action.payload.conversations || [];
+      const updatedIds = new Set(updatedConvs.map(c => c.id));
+      
+      // Keep existing conversations that weren't updated, merge the ones that were
+      const mergedConversations = state.conversations.map(existingConv => {
+        if (updatedIds.has(existingConv.id)) {
+          const updatedConv = updatedConvs.find(c => c.id === existingConv.id);
+          // Merge messages: keep existing + add new ones
+          const existingMsgIds = new Set(existingConv.messages?.map(m => m.id) || []);
+          const newMessages = updatedConv.messages?.filter(m => !existingMsgIds.has(m.id)) || [];
+          
+          return {
+            ...existingConv,
+            ...updatedConv,
+            messages: [...(existingConv.messages || []), ...newMessages]
+          };
+        }
+        return existingConv;
+      });
+      
+      // Add any completely new conversations (not in existing list)
+      const existingIds = new Set(state.conversations.map(c => c.id));
+      const newConvs = updatedConvs.filter(c => !existingIds.has(c.id));
+      
+      return {
+        ...state,
+        conversations: [...newConvs, ...mergedConversations].sort((a, b) => 
+          new Date(b.timestamp) - new Date(a.timestamp)
+        ),
+        lastMessageId: action.payload.last_message_id || state.lastMessageId
+      };
       
     case 'SET_SELECTED_CONVERSATION':
-      return { ...state, selectedConversation: action.payload };
+      // When selecting conversation, get messages from conversations array
+      const selectedConv = action.payload;
+      const convMessages = selectedConv?.messages || [];
+      return { 
+        ...state, 
+        selectedConversation: selectedConv,
+        conversationMessages: convMessages
+      };
       
     case 'SET_CONVERSATION_MESSAGES':
       return { ...state, conversationMessages: action.payload };
@@ -63,6 +111,24 @@ function appReducer(state, action) {
       return {
         ...state,
         conversationMessages: [...state.conversationMessages, action.payload],
+      };
+      
+    case 'ADD_OPTIMISTIC_MESSAGE':
+      // Adiciona mensagem otimista imediatamente à UI
+      return {
+        ...state,
+        conversationMessages: [...state.conversationMessages, action.payload.message],
+      };
+      
+    case 'UPDATE_OPTIMISTIC_MESSAGE':
+      // Substitui mensagem otimista pela mensagem real do servidor
+      return {
+        ...state,
+        conversationMessages: state.conversationMessages.map(msg =>
+          msg.id === action.payload.tempId 
+            ? { ...action.payload.message, _wasOptimistic: true } 
+            : msg
+        ),
       };
       
     case 'UPDATE_MESSAGE_STATUS':
@@ -82,7 +148,7 @@ function appReducer(state, action) {
           conv.id === action.payload.id ? { ...conv, ...action.payload } : conv
         ),
       };
-      
+
     // Pending
     case 'SET_PENDING_CONVERSATIONS':
       return { ...state, pendingConversations: action.payload, loading: false };
@@ -141,21 +207,56 @@ export function AppProvider({ children }) {
     }
   }, [isAuthenticated, state.selectedPlatforms, state.statusFilter]);
   
-  // Listen for conversations-updated event from polling
+  // Global polling integration
   useEffect(() => {
     if (!isAuthenticated) return;
     
-    const handleConversationsUpdated = () => {
-      console.log('[AppContext] 📥 Recebendo evento de atualização de conversas');
-      loadConversations();
+    const handleGlobalUpdates = (event) => {
+      const updates = event.detail;
+      console.log('[AppContext] � Processing global updates:', updates);
+      
+      if (updates.hasUpdates && updates.conversations?.length > 0) {
+        console.log('[AppContext] 🔄 Merging updated conversations:', updates.conversations.length);
+        
+        // Merge updated conversations into existing state
+        dispatch({ 
+          type: 'MERGE_CONVERSATIONS', 
+          payload: { 
+            conversations: updates.conversations,
+            last_message_id: state.lastMessageId
+          } 
+        });
+        
+        // If selected conversation was updated, update its messages too
+        if (state.selectedConversation) {
+          const updatedSelectedConv = updates.conversations.find(c => c.id === state.selectedConversation.id);
+          if (updatedSelectedConv) {
+            console.log('[AppContext] 🔄 Updating messages for selected conversation:', state.selectedConversation.id);
+            // Merge new messages into conversation messages
+            const existingMsgIds = new Set(state.conversationMessages?.map(m => m.id) || []);
+            const newMessages = updatedSelectedConv.messages?.filter(m => !existingMsgIds.has(m.id)) || [];
+            
+            if (newMessages.length > 0) {
+              console.log('[AppContext] 📨 New messages arrived for selected conversation:', newMessages.length);
+              dispatch({ 
+                type: 'SET_CONVERSATION_MESSAGES', 
+                payload: [...state.conversationMessages, ...newMessages] 
+              });
+              
+              // Dispatch event to scroll to bottom (for Conversations.jsx)
+              window.dispatchEvent(new CustomEvent('tekflox-new-message-arrived'));
+            }
+          }
+        }
+      }
     };
     
-    window.addEventListener('conversations-updated', handleConversationsUpdated);
+    window.addEventListener('tekflox-global-updates', handleGlobalUpdates);
     
     return () => {
-      window.removeEventListener('conversations-updated', handleConversationsUpdated);
+      window.removeEventListener('tekflox-global-updates', handleGlobalUpdates);
     };
-  }, [isAuthenticated, state.selectedPlatforms, state.statusFilter]);
+  }, [isAuthenticated, state.selectedConversation, state.conversationMessages, state.lastMessageId]);
   
   // ==================== Actions ====================
   
@@ -163,15 +264,30 @@ export function AppProvider({ children }) {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const filters = {};
+      
+      // Platform filter
       if (state.selectedPlatforms.length > 0 && state.selectedPlatforms.length < 3) {
         filters.platform = state.selectedPlatforms[0];
       }
+      
+      // Status filter
       if (state.statusFilter) {
         filters.status = state.statusFilter;
       }
-      const conversations = await api.getConversations(filters);
-      dispatch({ type: 'SET_CONVERSATIONS', payload: conversations });
+      
+      // Incremental polling: only fetch NEW messages if we have lastMessageId
+      if (state.lastMessageId > 0) {
+        filters.last_message_id = state.lastMessageId;
+      }
+      
+      console.log('[AppContext] 📥 Loading conversations with filters:', filters);
+      const data = await api.getConversations(filters);
+      
+      // data = { conversations: [...], last_message_id: N }
+      console.log(`[AppContext] ✅ Loaded ${data.conversations?.length || 0} conversations, lastMessageId: ${data.last_message_id}`);
+      dispatch({ type: 'SET_CONVERSATIONS', payload: data });
     } catch (error) {
+      console.error('[AppContext] ❌ Error loading conversations:', error);
       dispatch({ type: 'SET_ERROR', payload: error.message });
     }
   };
@@ -188,10 +304,13 @@ export function AppProvider({ children }) {
   
   const selectConversation = async (conversation) => {
     try {
+      // INSTANTÂNEO: Conversa já tem messages no array
+      console.log(`[AppContext] 🚀 Selected conversation ${conversation.id} with ${conversation.messages?.length || 0} messages`);
       dispatch({ type: 'SET_SELECTED_CONVERSATION', payload: conversation });
-      const messages = await api.getMessages(conversation.id);
-      dispatch({ type: 'SET_CONVERSATION_MESSAGES', payload: messages });
+      
+      // Nota: Não precisa mais fazer API call! Mensagens já vieram em /conversations
     } catch (error) {
+      console.error('[AppContext] ❌ Error selecting conversation:', error);
       dispatch({ type: 'SET_ERROR', payload: error.message });
     }
   };
@@ -201,7 +320,7 @@ export function AppProvider({ children }) {
       const message = await api.sendMessage(conversationId, { text, actionType });
       dispatch({ type: 'ADD_MESSAGE', payload: message });
       
-      // Update conversation in list
+      // Update conversation in list (will be refreshed by next poll)
       const updatedConv = await api.getConversation(conversationId);
       dispatch({ type: 'UPDATE_CONVERSATION', payload: updatedConv });
       

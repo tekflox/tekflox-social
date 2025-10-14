@@ -208,7 +208,7 @@ mock-server/
 
 | Conceito | Onde encontrar |
 |----------|----------------|
-| AI Insights Chat | README - Funcionalidades |
+| Chat com IA (com Resumo) | README - Funcionalidades |
 | Analytics | API.md - Analytics |
 | Arquitetura | README - Arquitetura |
 | Auto-reload | README - Configuração |

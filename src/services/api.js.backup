@@ -40,34 +40,30 @@ api.interceptors.request.use(
   }
 );
 
-// Flag to prevent multiple session expired modals
-let sessionExpiredHandled = false;
-
 // Response interceptor: Handle 401 (token expired/invalid)
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    // If 401 Unauthorized, clear auth and show friendly modal
+    // If 401 Unauthorized, clear auth and show friendly message
     if (error.response?.status === 401) {
       const currentPath = window.location.pathname;
       
-      // Only handle if not already on login page AND not already handled
-      if (!currentPath.includes('/login') && !sessionExpiredHandled) {
-        sessionExpiredHandled = true; // Set flag immediately to prevent multiple triggers
-        
-        console.warn('[API] Session expired. Showing modal...');
+      // Only redirect if not already on login page
+      if (!currentPath.includes('/login')) {
+        console.warn('[API] � Sessão expirada. Redirecionando para login...');
         
         // Clear authentication data
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         
-        // Dispatch custom event to show SessionExpiredModal (only once)
-        window.dispatchEvent(new CustomEvent('tekflox-session-expired'));
+        // Show friendly message before redirect
+        const shouldRedirect = window.confirm(
+          'Sua sessão expirou. Clique em OK para fazer login novamente.'
+        );
         
-        // Reset flag after redirect (10s countdown + 1s buffer)
-        setTimeout(() => {
-          sessionExpiredHandled = false;
-        }, 11000);
+        if (shouldRedirect) {
+          window.location.href = '/tekflox-social/login';
+        }
       }
     }
     
@@ -113,9 +109,18 @@ export const updateConversationMetadata = async (id, metadata) => {
 };
 
 // =====================================================
-// GLOBAL POLLING (uses /conversations with last_message_id)
+// GLOBAL POLLING
 // =====================================================
-// REMOVED: /updates endpoint - now using /conversations with last_message_id for polling
+
+/**
+ * Get all updates (conversations + messages) since last poll
+ * @param {Object} params - { since_id, since_timestamp }
+ * @returns {Promise<Object>} { hasUpdates, messages, conversations, lastMessageId, lastTimestamp }
+ */
+export const getUpdates = async (params = {}) => {
+  const { data } = await api.get('/updates', { params });
+  return data;
+};
 
 // =====================================================
 // MESSAGES
@@ -144,24 +149,6 @@ export const getAISuggestion = async (conversationId) => {
 
 export const getAISummary = async (conversationId) => {
   const { data } = await api.get(`/ai/summary/${conversationId}`);
-  return data;
-};
-
-// Generate AI Insights (summary with OpenAI)
-export const generateAIInsights = async (conversationId, options = {}) => {
-  const { data } = await api.post(`/ai/insights/${conversationId}`, options);
-  return data;
-};
-
-// Chat with AI about conversation (with MCP tools)
-export const chatWithAI = async (conversationId, message) => {
-  const { data } = await api.post(`/ai/chat/${conversationId}`, { message });
-  return data;
-};
-
-// Clear AI insights cache (force regeneration on next request)
-export const clearAIInsightsCache = async () => {
-  const { data } = await api.post('/ai/clear-cache');
   return data;
 };
 
@@ -275,9 +262,8 @@ export const getSettings = async () => {
   return data;
 };
 
-export const updateSettings = async (settings) => {
-  // Backend expects { settings: { key: value } } format
-  const { data } = await api.post('/settings', { settings });
+export const updateSettings = async (updates) => {
+  const { data } = await api.patch('/settings', updates);
   return data;
 };
 

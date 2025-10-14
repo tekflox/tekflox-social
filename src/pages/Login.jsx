@@ -15,7 +15,26 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [backendURL, setBackendURL] = useState(defaultBackendURL);
+  const [rememberMe, setRememberMe] = useState(false);
   const [localError, setLocalError] = useState('');
+
+  // Load saved credentials on mount
+  useEffect(() => {
+    const savedUsername = localStorage.getItem('rememberUsername');
+    const savedPassword = localStorage.getItem('rememberPassword');
+    const savedBackendURL = localStorage.getItem('baseURL');
+
+    if (savedUsername) {
+      setUsername(savedUsername);
+      setRememberMe(true);
+    }
+    if (savedPassword) {
+      setPassword(savedPassword);
+    }
+    if (savedBackendURL) {
+      setBackendURL(savedBackendURL);
+    }
+  }, []);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -56,6 +75,16 @@ export default function Login() {
     const result = await login(username, password, backendURL);
 
     if (result.success) {
+      // Save credentials if "Remember me" is checked
+      if (rememberMe) {
+        localStorage.setItem('rememberUsername', username);
+        localStorage.setItem('rememberPassword', password);
+      } else {
+        // Clear saved credentials if unchecked
+        localStorage.removeItem('rememberUsername');
+        localStorage.removeItem('rememberPassword');
+      }
+      
       navigate('/conversations');
     }
     // Error is handled by AuthContext
@@ -121,6 +150,21 @@ export default function Login() {
                   autoComplete="current-password"
                 />
               </div>
+            </div>
+
+            {/* Remember Me Checkbox */}
+            <div className="flex items-center">
+              <input
+                id="rememberMe"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 text-purple-500 border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
+                disabled={isLoading}
+              />
+              <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-700 cursor-pointer">
+                Lembrar-me neste dispositivo
+              </label>
             </div>
 
             {/* Backend URL Input */}
