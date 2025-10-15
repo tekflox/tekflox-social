@@ -278,6 +278,9 @@ export function AppProvider({ children }) {
       // Incremental polling: only fetch NEW messages if we have lastMessageId
       if (state.lastMessageId > 0) {
         filters.last_message_id = state.lastMessageId;
+      } else {
+        // First load: get last 100 conversations with ALL messages
+        filters.limit = 100;
       }
       
       console.log('[AppContext] 📥 Loading conversations with filters:', filters);

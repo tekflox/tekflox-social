@@ -70,7 +70,7 @@ Aplicação React para gerenciamento unificado de redes sociais (Instagram, Face
 - 💬 **Interface estilo Facebook Messenger** com layout de 3 colunas
 - 🤖 **Sugestões de resposta por IA** com 3 modos (Aceitar/Editar/Manual)
 - 🛍️ **Integração WooCommerce** - vinculação de conversas com clientes e pedidos
-- 🧠 **AI Insights Chat** - conversa com IA sobre contexto da conversa
+- 🧠 **Chat com IA** - conversa inteligente com resumo automático da conversa
 - 🏷️ **Sistema de Tags e Etiquetas** com cores personalizáveis
 - 📝 **Notas manuais** com edição inline
 - 🎨 **Diferenciação visual** - mensagens IA (roxo/rosa), manuais (azul)
@@ -256,7 +256,7 @@ npm run deploy
 │  ├─────────────────────────────────────────────────────────┤  │
 │  │  • conversations[]      (5 conversas)                   │  │
 │  │  • messages[]           (histórico de mensagens)        │  │
-│  │  • conversationMetadata{}  (tags, notas, AI insights)   │  │
+│  │  • conversationMetadata{}  (tags, notas, chat com IA)   │  │
 │  │  • customers[]          (5 clientes)                    │  │
 │  │  • orders[]             (5 pedidos)                     │  │
 │  │  • wordpressAccounts[]  (5 contas)                      │  │
@@ -371,7 +371,7 @@ tekflox-social/
    
 4. **Painel do Cliente**
    - **Dados do Perfil**: Nome, username, plataforma
-   - **AI Insights Chat**: Conversa com IA sobre o contexto
+   - **Chat com IA**: Conversa inteligente sobre o contexto da conversa
      - Primeira mensagem: Resumo automático da conversa
      - Input para perguntas ao AI
      - Histórico de chat persistente
@@ -395,11 +395,11 @@ tekflox-social/
   3. **Manual**: Escreve do zero (oculta sugestão)
 - Tracking de qual modo foi utilizado para métricas
 
-**AI Insights Chat:**
+**Chat com IA (com Resumo Automático):**
 - Resumo inicial automático ao selecionar conversa
 - Informações incluídas: nome do cliente, plataforma, status, pedidos vinculados
 - Chat interativo para fazer perguntas sobre a conversa
-- Respostas contextualizadas (mock - pronto para integração real)
+- Respostas contextualizadas com integração OpenAI + MCP Tools
 - Histórico salvo por conversa
 
 ### 🛍️ Integração WooCommerce
@@ -495,7 +495,7 @@ curl http://localhost:3002/api/health
 | **Health** | `GET /health` | Status do servidor |
 | **Conversas** | `GET/PATCH/POST /conversations/*` | CRUD de conversas |
 | **Mensagens** | `GET/POST /conversations/:id/messages` | Histórico e envio |
-| **Metadata** | `GET/PATCH /conversations/:id/metadata` | Tags, labels, notas, AI insights |
+| **Metadata** | `GET/PATCH /conversations/:id/metadata` | Tags, labels, notas, chat com IA |
 | **IA** | `GET /ai/suggestion/:id`, `GET /ai/summary/:id` | Sugestões e resumos |
 | **Analytics** | `GET /analytics/*`, `GET /dashboard/pending` | Estatísticas |
 | **Clientes** | `GET /customers/*`, `GET /customers/search` | CRUD clientes |
@@ -511,7 +511,7 @@ O servidor mantém em memória:
 - 5 clientes com avatares
 - 5 pedidos vinculados
 - 5 contas WordPress
-- Metadata por conversa (tags, labels, notas, AI insights)
+- Metadata por conversa (tags, labels, notas, chat com IA)
 - Histórico completo de mensagens
 - Sugestões IA para cada conversa
 
@@ -623,7 +623,7 @@ Para documentação completa com todos os detalhes:
   - Plataforma
   - Status da conversa
   
-- **Seção AI Insights (Chat):**
+- **Seção Chat com IA (com Resumo):**
   - Gradiente roxo/rosa de fundo
   - Mensagens do AI (esquerda, branco)
   - Mensagens do usuário (direita, azul)
@@ -680,7 +680,7 @@ Para documentação completa com todos os detalhes:
 - [x] Dashboard com estatísticas
 - [x] Interface estilo Facebook Messenger
 - [x] Sistema de tags, etiquetas e notas
-- [x] AI Insights Chat
+- [x] Chat com IA (com resumo automático)
 - [x] Integração mock WooCommerce
 - [x] Auto-reload frontend e backend
 
@@ -1051,7 +1051,7 @@ src/
 ### Status Atual
 - ⚠️ 20 testes falhando de 49 totais
 - 🔄 Precisa atualizar mocks para nova estrutura de dados
-- 📝 Adicionar testes para AI Insights, Tags, Labels
+- 📝 Adicionar testes para Chat com IA, Tags, Labels
 
 ## 🔄 Fluxo de Trabalho Git
 
@@ -1200,7 +1200,7 @@ npm run build           # Build produção
 ├──┤  🔴 2 minutos │  │  ✨ Sugestão IA:       │ │  @mariasilva   │
 │🔲│                │  │  "Olá Maria! Sim..."   │ │  📱 Instagram  │
 │🔲│  João Santos   │  │  ⚡92% confiança      │ │                │
-│🔲│  joao.santos   │  │                        │ │  💬 AI INSIGHTS│
+│🔲│  joao.santos   │  │                        │ │  💬 CHAT IA    │
 ├──┤  📘 5 minutos │  │  [Aceitar] [Editar]    │ │  ┌──────────┐ │
 │🔲│                │  │  [Manual]              │ │  │AI: 📊...  │ │
 │🔲│  Ana Costa     │  └────────────────────────┘ │  │User: Como?│ │
@@ -1270,14 +1270,14 @@ Tags:                Labels:              Status:
 
 ## 🌟 Features em Destaque
 
-### 1. AI Insights Chat
-Primeira implementação de chat conversacional com IA integrado ao painel do cliente, permitindo perguntas contextuais sobre a conversa em andamento.
+### 1. Chat com IA (com Resumo Automático)
+Implementação completa de chat conversacional com IA integrado ao painel do cliente, com resumo automático da conversa e suporte a perguntas contextuais usando OpenAI + MCP Tools.
 
 ### 2. Edição Inline de Notas
 Sistema de edição inline sem popups intrusivos, melhorando significativamente a UX do operador.
 
 ### 3. Sistema de Metadata Completo
-Gestão completa de tags, etiquetas coloridas, notas manuais e insights de IA, tudo persistido por conversa.
+Gestão completa de tags, etiquetas coloridas, notas manuais e chat com IA, tudo persistido por conversa.
 
 ### 4. Diferenciação Visual de Mensagens
 Código de cores inovador que identifica instantaneamente se a mensagem foi enviada via IA (aceita ou editada) ou manualmente.

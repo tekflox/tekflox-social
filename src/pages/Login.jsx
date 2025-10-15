@@ -7,10 +7,10 @@ export default function Login() {
   const navigate = useNavigate();
   const { login, isAuthenticated, isLoading, error: authError } = useAuth();
 
-  // Default backend URL: Vercel in production, localhost in development
+  // Default backend URL: Simple format (protocol and path added automatically)
   const defaultBackendURL = import.meta.env.PROD 
-    ? 'https://tekflox-social.vercel.app'
-    : 'http://localhost:3002';
+    ? 'tekflox-social.vercel.app'
+    : 'localhost:8100';
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -63,16 +63,34 @@ export default function Login() {
       return;
     }
 
+    // Normalize backend URL
+    let normalizedURL = backendURL.trim();
+    
+    // Add protocol if missing
+    if (!normalizedURL.startsWith('http://') && !normalizedURL.startsWith('https://')) {
+      // Use https:// for production domains, http:// for localhost
+      normalizedURL = normalizedURL.includes('localhost') 
+        ? `http://${normalizedURL}` 
+        : `https://${normalizedURL}`;
+    }
+    
+    // Add /wp-json/tekflox-social path if not present
+    if (!normalizedURL.includes('/wp-json/tekflox-social')) {
+      // Remove trailing slash if present
+      normalizedURL = normalizedURL.replace(/\/$/, '');
+      normalizedURL = `${normalizedURL}/wp-json/tekflox-social`;
+    }
+
     // Validate URL format
     try {
-      new URL(backendURL);
+      new URL(normalizedURL);
     } catch {
-      setLocalError('URL do backend inválida. Use formato: http://localhost:3002');
+      setLocalError('URL do backend inválida. Use formato: localhost:8100 ou seudominio.com');
       return;
     }
 
-    // Attempt login
-    const result = await login(username, password, backendURL);
+    // Attempt login with normalized URL
+    const result = await login(username, password, normalizedURL);
 
     if (result.success) {
       // Save credentials if "Remember me" is checked
@@ -182,15 +200,13 @@ export default function Login() {
                   value={backendURL}
                   onChange={(e) => setBackendURL(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                  placeholder={defaultBackendURL}
+                  placeholder="localhost:8100 ou seudominio.com"
                   disabled={isLoading}
                   autoComplete="url"
                 />
               </div>
               <p className="mt-2 text-xs text-gray-500">
-                {import.meta.env.PROD 
-                  ? 'URL padrão: Vercel (produção)'
-                  : 'URL padrão: localhost (desenvolvimento)'}
+                Digite apenas o domínio. Exemplo: localhost:8100 ou sapatariacrispal.com
               </p>
             </div>
 

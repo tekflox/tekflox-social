@@ -215,7 +215,7 @@ useEffect(() => {
 - ✅ Seleção de conversa - clique e highlight
 - ✅ Envio de mensagens - Aceitar/Editar/Manual AI
 - ✅ Busca e filtros - texto e plataforma
-- ✅ Metadata - tags, notes, AI insights
+- ✅ Metadata - tags, notes, chat com IA
 - ✅ Navegação e UI - sidebar, timestamps
 
 **Funcionalidades com testes falhando** (10 testes):
